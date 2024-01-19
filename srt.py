@@ -1,3 +1,6 @@
+from typing import TypeVar, Type
+from dataclasses import dataclass
+
 from subtitles import SubtitleLine
 
 @dataclass
