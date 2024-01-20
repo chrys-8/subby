@@ -1,4 +1,4 @@
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Callable
 from dataclasses import dataclass
 
 from subtitles import SubtitleLine
@@ -7,6 +7,14 @@ from subtitles import SubtitleLine
 class SubtitleFile:
     filename: str
     sublines: list[SubtitleLine]
+
+    def print(self) -> None:
+        '''Output to stdout'''
+
+        def _print(s: str) -> None:
+            print(s, end='')
+
+        self._output(_print)
 
     def writeToFile(self, outputFilename: str) -> bool:
         '''Output to file'''
@@ -17,21 +25,27 @@ class SubtitleFile:
             return False
 
         with file:
-            counter = 0
-            for subtitle in self.sublines:
-                counter = counter + 1
-                file.write(f"{counter}\n")
-                file.write(f"{str(subtitle.duration)}\n")
-                for line in subtitle.content:
-                    file.write(f"{line}\n")
-
-                file.write("\n")
+            self._output(file.write)
 
         return True
 
     def saveToFile(self) -> bool:
         '''Save to the source file'''
         return self.writeToFile(self.filename)
+
+    def _output(self, fn: Callable[[str], None]) -> None:
+        '''Make successive calls to an output function with file
+        contents'''
+
+        counter = 0
+        for subtitle in self.sublines:
+            counter = counter + 1
+            fn(f"{counter}\n")
+            fn(f"{str(subtitle.duration)}\n")
+            for line in subtitle.content:
+                fn(f"{line}\n")
+
+            fn("\n")
 
 def decodeSRTFile(filename: str) -> SubtitleFile | None:
     '''Decode srt file'''
