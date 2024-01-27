@@ -1,0 +1,74 @@
+import unittest
+
+from srt import decodeSRTFile
+from subtitles import Time
+
+TEST_SRT = "test.srt"
+
+TEST_SRT_DATA = [
+        {
+            'duration': {
+                'begin': (0, 0, 0, 0),
+                'delay_begin': (0, 0, 15, 0),
+                'end': (0, 0, 10, 0),
+                'delay_end': (0, 0, 25, 0) },
+            'content': ["Line 1"] },
+        {
+            'duration': {
+                'begin': (0, 0, 20, 0),
+                'delay_begin': (0, 0, 35, 0),
+                'end': (0, 0, 25, 0),
+                'delay_end': (0, 0, 40, 0) },
+            'content': ["Line 2"] },
+        {
+            'duration': {
+                'begin': (0, 0, 59, 0),
+                'delay_begin': (0, 1, 14, 0),
+                'end': (0, 1, 0, 0),
+                'delay_end': (0, 1, 15, 0) },
+            'content': ["Line 3"] },
+        {
+            'duration': {
+                'begin': (0, 59, 50, 0),
+                'delay_begin': (1, 0, 5, 0),
+                'end': (1, 5, 0, 0),
+                'delay_end': (1, 5, 15, 0) },
+            'content': ["Line 4", "Second line in 4"] }
+        ]
+
+TEST_DELAY = 15000
+
+class SubtitleFileTestCase(unittest.TestCase):
+
+    def convertDurationtoTimeTuple(self, duration):
+        begin = Time.convertValueToTime(duration.begin.value)
+        end = Time.convertValueToTime(duration.end.value)
+        return begin, end
+
+    def test_decodeSRTFile(self):
+        subs = decodeSRTFile(TEST_SRT)
+
+        self.assertEqual(len(subs.sublines), 4)
+        for line, tline in zip(subs.sublines, TEST_SRT_DATA):
+            self.assertEqual(len(line.content), len(tline['content']))
+            for cline, tcline in zip(line.content, tline['content']):
+                self.assertEqual(cline, tcline)
+
+            begin, end = self.convertDurationtoTimeTuple(line.duration)
+
+            self.assertEqual(begin, tline['duration']['begin'])
+            self.assertEqual(end, tline['duration']['end'])
+
+    def test_addDelay(self):
+        subs = decodeSRTFile(TEST_SRT)
+        for line in subs.sublines:
+            line.duration.addDelay(TEST_DELAY)
+
+        for line, tline in zip(subs.sublines, TEST_SRT_DATA):
+            begin, end = self.convertDurationtoTimeTuple(line.duration)
+
+            self.assertEqual(begin, tline['duration']['delay_begin'])
+            self.assertEqual(end, tline['duration']['delay_end'])
+
+if __name__ == "__main__":
+    unittest.main()
