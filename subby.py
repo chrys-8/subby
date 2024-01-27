@@ -40,7 +40,7 @@ def main():
         subs.print()
 
     else:
-        subs.writeToFile(output)
+        subs.writeToFile(args.output)
 
 if __name__ == "__main__":
     main()
