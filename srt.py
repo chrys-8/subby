@@ -1,7 +1,8 @@
-from typing import TypeVar, Type, Callable
+from enum import Enum
+from typing import Any, Callable
 from dataclasses import dataclass
 
-from subtitles import SubtitleLine
+from subtitles import SubtitleLine, TimeRange, Time
 
 @dataclass
 class SubtitleFile:
@@ -33,7 +34,7 @@ class SubtitleFile:
         '''Save to the source file'''
         return self.writeToFile(self.filename)
 
-    def _output(self, fn: Callable[[str], None]) -> None:
+    def _output(self, fn: Callable[[str], Any]) -> None:
         '''Make successive calls to an output function with file
         contents'''
 
@@ -56,7 +57,7 @@ def decodeSRTFile(filename: str) -> SubtitleFile | None:
         print("File not found error")
         return
 
-    sublines: list[str] = list()
+    sublines: list[SubtitleLine] = list()
     result: SubtitleFile = SubtitleFile(filename, sublines)
     with file:
         lines: list[str] = []

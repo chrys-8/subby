@@ -8,11 +8,12 @@ ARG_HELP = {
         "delay":     "Delay subtitle lines in milliseconds",
         "begin":     "Line to begin delay from",
         "overwrite": "Flag to specify overwriting the input file;" \
-                " ignores -o"}
+            " ignores -o"}
 
 parser = argparse.ArgumentParser(prog="subby",
         description="Subtitle editor")
 
+# TODO add function for duduplicating argument name and help string
 # TODO add multi file support
 parser.add_argument("input", help=ARG_HELP["input"])
 parser.add_argument("-o", "--output", nargs="?",

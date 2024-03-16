@@ -1,11 +1,9 @@
-from typing import TypeVar, Type
+from typing import Type
 from dataclasses import dataclass
 
 HOURS = 1000 * 60 * 60
 MINUTES = 1000 * 60
 SECONDS = 1000
-
-T = TypeVar('T', bound = 'Parent')
 
 @dataclass
 class Time:
@@ -16,7 +14,7 @@ class Time:
         return f"{hour:02}:{minute:02}:{second:02},{millisecond:03}"
 
     @classmethod
-    def fromStr(cls: Type[T], time: str) -> T:
+    def fromStr(cls, time: str):
         '''Parse time from string'''
 
         hourStr, minuteStr, remainder = time.split(':')
@@ -61,7 +59,7 @@ class TimeRange:
         return f"{self.begin!s} --> {self.end!s}"
 
     @classmethod
-    def parseDuration(cls: Type[T], duration: str) -> T:
+    def parseDuration(cls, duration: str):
         '''Parses duration line from srt file'''
 
         beginStr, endStr = duration.split(" --> ")
