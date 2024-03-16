@@ -30,15 +30,26 @@ def main():
 
     args = parser.parse_args()
 
+    # TODO detect filetype; reject non-SRT
+
+    # TODO implement force
+    if not args.input.endswith(".srt"):
+        print(f"'{args.input}' is not an srt file (--force (not implemented))")
+        return
+
+    if args.output is None and not args.overwrite:
+        print("Please specify an output file with -o, or use the --overwrite flag")
+        return
+
     subs = decodeSRTFile(args.input)
+    if subs is None:
+        return
+
     for subtitle in subs.sublines[args.begin:]:
         subtitle.duration.addDelay(args.delay)
 
     if args.overwrite:
         subs.saveToFile()
-
-    elif args.output is None:
-        subs.print()
 
     else:
         subs.writeToFile(args.output)

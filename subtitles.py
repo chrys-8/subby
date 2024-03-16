@@ -67,15 +67,6 @@ class TimeRange:
 
 @dataclass
 class SubtitleLine:
+    index: int
     duration: TimeRange
     content: list[str]
-
-    @classmethod
-    def parse(cls: Type[T], lines: list[str]) -> T:
-        '''Parse a sequences of non-empty lines into subtitle lines'''
-
-        # ignore index line
-        durationStr = lines[1]
-        content = lines[2:]
-        duration = TimeRange.parseDuration(durationStr)
-        return cls(duration, content)

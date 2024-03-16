@@ -48,6 +48,20 @@ class SubtitleFile:
 
             fn("\n")
 
+def removeByteOrderMark(line: str) -> str:
+    '''Remove BOM at beginning of file'''
+    if line.startswith("\xEF\xBB\xBF"):
+        line = line[3:]
+    return line
+
+class ParserState(Enum):
+    BeforeSubline = 0
+    FirstLine = 1
+    IndexLine = 2
+    DurationLine = 3
+    Contents = 4
+    EndOfSubline = 5
+
 def decodeSRTFile(filename: str) -> SubtitleFile | None:
     '''Decode srt file'''
 
@@ -59,18 +73,45 @@ def decodeSRTFile(filename: str) -> SubtitleFile | None:
 
     sublines: list[SubtitleLine] = list()
     result: SubtitleFile = SubtitleFile(filename, sublines)
+
     with file:
-        lines: list[str] = []
+        # abstract with builder pattern
+        index: int = 0
+        duration: TimeRange = TimeRange(Time(0), Time(0))
+        content: list[str] = list()
+        state = ParserState.FirstLine
+
         for line in file:
             line = line.strip('\n')
-            if len(line) > 0:
-                lines.append(line)
+
+            if state is ParserState.FirstLine:
+                line = removeByteOrderMark(line)
+                state = ParserState.BeforeSubline
+
+            if state is ParserState.BeforeSubline:
+                try:
+                    index = int(line)
+                    state = ParserState.DurationLine
+                    continue
+
+                except ValueError:
+                    pass
+
+            if state is ParserState.DurationLine:
+                duration = TimeRange.parseDuration(line)
+                state = ParserState.Contents
                 continue
 
-            sublines.append(SubtitleLine.parse(lines))
-            lines = []
+            if state is ParserState.Contents:
+                if len(line) != 0:
+                    content.append(line)
+                    continue
 
-        if len(lines) > 0:
-            sublines.append(SubtitleLine.parse(lines))
+                state = ParserState.EndOfSubline
+
+            if state is ParserState.EndOfSubline:
+                sublines.append(SubtitleLine(index, duration, content))
+                content = []
+                state = ParserState.BeforeSubline
 
     return result
