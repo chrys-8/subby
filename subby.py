@@ -1,5 +1,5 @@
 from argparser import Commands
-from srt import decodeSRTFile
+from srt import SRTDecoder
 
 def main():
     args = Commands().parse_args()
@@ -7,7 +7,7 @@ def main():
     if args is None:
         return
 
-    subs = decodeSRTFile(args.input)
+    subs = SRTDecoder(args.input).decode()
     if subs is None:
         print(f"Could not decode input: {args.input}")
         print("Perhaps the subtitle file is empty")

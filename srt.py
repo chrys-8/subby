@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from subtitles import SubtitleLine, TimeRange, Time
 
 @dataclass
-class SubtitleFile:
+class SRTFile:
     filename: str
     sublines: list[SubtitleLine]
 
@@ -54,6 +54,9 @@ def removeByteOrderMark(line: str) -> str:
         line = line[3:]
     return line
 
+class DecodeException(Exception):
+    pass
+
 class ParserState(Enum):
     BeforeSubline = 0
     FirstLine = 1
@@ -62,32 +65,47 @@ class ParserState(Enum):
     Contents = 4
     EndOfSubline = 5
 
-def decodeSRTFile(filename: str) -> SubtitleFile | None:
-    '''Decode srt file'''
+class SRTDecoder:
+    '''Implement srt decoding'''
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
 
-    try:
-        file = open(filename, 'r')
-    except FileNotFoundError:
-        print("File not found error")
-        return
+        self.filebuffer: list[str] = []
 
-    sublines: list[SubtitleLine] = list()
-    result: SubtitleFile = SubtitleFile(filename, sublines)
+    def read_file(self) -> None:
+        '''Open file and read to buffer'''
+        try:
+            file = open(self.filename, 'r')
+        except FileNotFoundError:
+            print(f"{self.filename} cannot be opened")
+            raise DecodeException
 
-    with file:
-        # abstract with builder pattern
+        with file:
+            for line in file:
+                line = line.strip('\n')
+                self.filebuffer.append(line)
+
+        # remove BOM from first line
+        self.filebuffer[0] = removeByteOrderMark(self.filebuffer[0])
+
+    def cleanup(self) -> None:
+        '''Free filebuffer'''
+        self.filebuffer.clear()
+
+    def decode(self) -> SRTFile:
+        '''Run decode implementation'''
+        # check if we need to read the file
+        if len(self.filebuffer) == 0:
+            self.read_file()
+
+        sublines: list[SubtitleLine] = []
+
         index: int = 0
         duration: TimeRange = TimeRange(Time(0), Time(0))
-        content: list[str] = list()
-        state = ParserState.FirstLine
+        content: list[str] = []
+        state = ParserState.BeforeSubline
 
-        for line in file:
-            line = line.strip('\n')
-
-            if state is ParserState.FirstLine:
-                line = removeByteOrderMark(line)
-                state = ParserState.BeforeSubline
-
+        for line in self.filebuffer:
             if state is ParserState.BeforeSubline:
                 try:
                     index = int(line)
@@ -114,4 +132,5 @@ def decodeSRTFile(filename: str) -> SubtitleFile | None:
                 content = []
                 state = ParserState.BeforeSubline
 
-    return result
+        self.cleanup()
+        return SRTFile(self.filename, sublines)
