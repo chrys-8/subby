@@ -58,11 +58,32 @@ class Commands:
                 description = "Valid subcommands",
                 dest = "subcmd")
 
+        self.add_subcommand_display()
         self.add_subcommand_delay()
 
+    def add_subcommand_display(self) -> None:
+        '''Set flags for display subcommand'''
 
+        subcommand = "display"
+        helpstring = "Display information about subtitle file"
 
+        display_parser = self._subparsers.add_parser(
+                subcommand,
+                help = helpstring)
 
+        self._subcommands[subcommand] = display_parser
+
+        display_parser.add_argument(
+                "--long",
+                action = "store_true",
+                help = "Display detailed information")
+
+        display_parser.add_argument(
+                "--missing",
+                action = "store_true",
+                help = "Not implemented")
+
+        self.add_single_file_input(subcommand)
 
     def add_subcommand_delay(self) -> None:
         '''Set flags for delay subcommand'''

@@ -6,6 +6,11 @@ from subtitles import SubtitleLine
 from stime import TimeRange, Time
 from filerange import FileRange
 
+@dataclass
+class FileStatistics:
+    consecutive_blank_lines: tuple[int, ...] = ()
+    missing_end_blank_line: bool = False
+
 
 @dataclass
 class SRTFile:
@@ -74,6 +79,7 @@ class SRTDecoder:
         self.filerange = filerange
 
         self.filebuffer: list[str] = []
+        self.stats = FileStatistics(())
 
     def read_file(self) -> None:
         '''Open file and read to buffer'''
@@ -150,11 +156,13 @@ class SRTDecoder:
         if state is ParserState.Contents:
             # missing blank line at EOF
             sublines.append(SubtitleLine(index, duration, content))
+            self.stats.missing_end_blank_line = True
 
         elif state is not ParserState.BeforeSubline:
             raise DecodeException("Malformed subtitle file")
 
         self.cleanup()
+        self.stats.consecutive_blank_lines = tuple(consecutive_blank_lines)
         return SRTFile(self.filerange, sublines)
 
 # Structure checks

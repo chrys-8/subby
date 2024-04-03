@@ -100,6 +100,63 @@ def delay(args: argparse.Namespace) -> None:
     else:
         print(f"Fatal error: could not save to file '{filename}'")
 
+def display(args: argparse.Namespace) -> None:
+    '''Implement display subcommand'''
+
+    if args.input.linerange is not None or args.input.timerange is not None:
+        print(f"Ignoring provided range for {args.input.filename}...")
+
+    useLongInfo: bool = args.long
+
+    try:
+        decoder = SRTDecoder(args.input)
+        srtfile = decoder.decode()
+    except DecodeException:
+        print("Could not decode file")
+        return
+
+    srtfile.sort_subtitles()
+
+    print(f"srt subtitles: {srtfile.filerange.filename}")
+    print(f"\tcontains {len(srtfile.sublines)} lines")
+
+    hasIssues = False
+
+    # consecutive blank lines
+    if len(decoder.stats.consecutive_blank_lines) != 0:
+        cases = len(decoder.stats.consecutive_blank_lines)
+        print(f"\t{cases} cases of consecutive blank lines")
+        hasIssues = True
+
+        if useLongInfo:
+            line_numbers = (str(index)
+                            for index in decoder.stats.consecutive_blank_lines)
+
+            print(f"\ton line numbers: {', '.join(line_numbers)}")
+
+    # missing terminating blank line
+    if decoder.stats.missing_end_blank_line:
+        print(f"\tmissing terminating blank line")
+        hasIssues = True
+
+    # index mismatches
+    mismatches = check_index_mismatch(srtfile)
+    if len(mismatches) != 0:
+        print(f"\t{len(mismatches)} cases of mismatched line indices")
+        print("\tthis might suggest missing lines")
+        hasIssues = True
+
+        if useLongInfo:
+            print("Reported line number\tActual line number")
+            for reported, actual in mismatches:
+                print(f"{reported}\t{actual}")
+
+    if not hasIssues:
+        print("\tno issues")
+
+    if args.missing:
+        print("Utility for determining missing line numbers not yet implemented")
+
 def main() -> None:
     args = Commands().parse_args()
 
@@ -112,6 +169,9 @@ def main() -> None:
 
     elif args.subcmd == "delay":
         delay(args)
+
+    elif args.subcmd == "display":
+        display(args)
 
     return
 
