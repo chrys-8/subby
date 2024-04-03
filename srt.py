@@ -1,12 +1,15 @@
-from enum import Enum
+from enum import Enum, auto
 from typing import Any, Callable
 from dataclasses import dataclass
 
-from subtitles import SubtitleLine, TimeRange, Time
+from subtitles import SubtitleLine
+from stime import TimeRange, Time
+from filerange import FileRange
+
 
 @dataclass
 class SRTFile:
-    filename: str
+    filerange: FileRange
     sublines: list[SubtitleLine]
 
     def print(self) -> None:
@@ -17,7 +20,7 @@ class SRTFile:
 
         self._output(_print)
 
-    def writeToFile(self, outputFilename: str) -> bool:
+    def write_to_file(self, outputFilename: str) -> bool:
         '''Output to file'''
 
         try:
@@ -30,25 +33,26 @@ class SRTFile:
 
         return True
 
-    def saveToFile(self) -> bool:
+    def save_to_file(self) -> bool:
         '''Save to the source file'''
-        return self.writeToFile(self.filename)
+        return self.write_to_file(self.filerange.filename)
 
     def _output(self, fn: Callable[[str], Any]) -> None:
-        '''Make successive calls to an output function with file
-        contents'''
+        '''Make successive calls to an output function with file contents'''
 
-        counter = 0
         for subtitle in self.sublines:
-            counter = counter + 1
-            fn(f"{counter}\n")
+            fn(f"{subtitle.index}\n")
             fn(f"{str(subtitle.duration)}\n")
             for line in subtitle.content:
                 fn(f"{line}\n")
 
             fn("\n")
 
-def removeByteOrderMark(line: str) -> str:
+    def sort_subtitles(self) -> None:
+        '''Sort subtitles by ascending start time'''
+        self.sublines.sort(key = lambda line: line.duration.begin.value)
+
+def remove_byte_order_mark(line: str) -> str:
     '''Remove BOM at beginning of file'''
     if line.startswith("\xEF\xBB\xBF"):
         line = line[3:]
@@ -58,26 +62,25 @@ class DecodeException(Exception):
     pass
 
 class ParserState(Enum):
-    BeforeSubline = 0
-    FirstLine = 1
-    IndexLine = 2
-    DurationLine = 3
-    Contents = 4
-    EndOfSubline = 5
+    BeforeSubline = auto()
+    IndexLine     = auto()
+    DurationLine  = auto()
+    Contents      = auto()
+    EndOfSubline  = auto()
 
 class SRTDecoder:
     '''Implement srt decoding'''
-    def __init__(self, filename: str) -> None:
-        self.filename = filename
+    def __init__(self, filerange: FileRange) -> None:
+        self.filerange = filerange
 
         self.filebuffer: list[str] = []
 
     def read_file(self) -> None:
         '''Open file and read to buffer'''
         try:
-            file = open(self.filename, 'r')
+            file = open(self.filerange.filename, 'r')
         except FileNotFoundError:
-            print(f"{self.filename} cannot be opened")
+            print(f"{self.filerange.filename} cannot be opened")
             raise DecodeException
 
         with file:
@@ -86,7 +89,7 @@ class SRTDecoder:
                 self.filebuffer.append(line)
 
         # remove BOM from first line
-        self.filebuffer[0] = removeByteOrderMark(self.filebuffer[0])
+        self.filebuffer[0] = remove_byte_order_mark(self.filebuffer[0])
 
     def cleanup(self) -> None:
         '''Free filebuffer'''
@@ -100,12 +103,24 @@ class SRTDecoder:
 
         sublines: list[SubtitleLine] = []
 
-        index: int = 0
-        duration: TimeRange = TimeRange(Time(0), Time(0))
+        index = 0
+        duration = TimeRange(Time(0), Time(0))
         content: list[str] = []
         state = ParserState.BeforeSubline
 
-        for line in self.filebuffer:
+        consecutive_blank_lines: list[int] = []
+        consecutive_blank_line_count = 0
+
+        for line_index, line in enumerate(self.filebuffer):
+            if len(line) == 0:
+                consecutive_blank_line_count = consecutive_blank_line_count + 1
+
+            else:
+                consecutive_blank_line_count = 0
+
+            if consecutive_blank_line_count > 1:
+                consecutive_blank_lines.append(line_index)
+
             if state is ParserState.BeforeSubline:
                 try:
                     index = int(line)
@@ -116,7 +131,7 @@ class SRTDecoder:
                     pass
 
             if state is ParserState.DurationLine:
-                duration = TimeRange.parseDuration(line)
+                duration = TimeRange.parse_duration(line)
                 state = ParserState.Contents
                 continue
 
@@ -132,5 +147,20 @@ class SRTDecoder:
                 content = []
                 state = ParserState.BeforeSubline
 
+        if state is ParserState.Contents:
+            # missing blank line at EOF
+            sublines.append(SubtitleLine(index, duration, content))
+
+        elif state is not ParserState.BeforeSubline:
+            raise DecodeException("Malformed subtitle file")
+
         self.cleanup()
-        return SRTFile(self.filename, sublines)
+        return SRTFile(self.filerange, sublines)
+
+# Structure checks
+def check_index_mismatch(file: SRTFile) -> list[tuple[int, int]]:
+    '''Discover line index mismatches; yields (reported, actual)'''
+
+    return [(line.index, index)
+            for index, line in enumerate(file.sublines)
+            if line.index != index + 1]

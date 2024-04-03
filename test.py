@@ -1,7 +1,8 @@
 import unittest
 
 from srt import SRTDecoder
-from subtitles import Time
+from stime import Time
+from filerange import filerange
 
 TEST_SRT = "test.srt"
 
@@ -47,8 +48,8 @@ class SubtitleFileTestCase(unittest.TestCase):
         end = Time.convertValueToTime(duration.end.value)
         return begin, end
 
-    def test_decodeSRTFile(self):
-        subs = SRTDecoder(TEST_SRT).decode()
+    def test_decode_SRTFile(self):
+        subs = SRTDecoder(filerange(TEST_SRT)).decode()
 
         self.assertEqual(len(subs.sublines), 4)
         for line, tline in zip(subs.sublines, TEST_SRT_DATA):
@@ -61,10 +62,10 @@ class SubtitleFileTestCase(unittest.TestCase):
             self.assertEqual(begin, tline['duration']['begin'])
             self.assertEqual(end, tline['duration']['end'])
 
-    def test_addDelay(self):
-        subs = SRTDecoder(TEST_SRT).decode()
+    def test_add_delay(self):
+        subs = SRTDecoder(filerange(TEST_SRT)).decode()
         for line in subs.sublines:
-            line.duration.addDelay(TEST_DELAY)
+            line.duration.add_delay(TEST_DELAY)
 
         for line, tline in zip(subs.sublines, TEST_SRT_DATA):
             begin, end = self.convertDurationtoTimeTuple(line.duration)
@@ -72,8 +73,8 @@ class SubtitleFileTestCase(unittest.TestCase):
             self.assertEqual(begin, tline['duration']['delay_begin'])
             self.assertEqual(end, tline['duration']['delay_end'])
 
-    def test_removeByteOrderMark(self):
-        decoder = SRTDecoder(TEST_BOM_SRT)
+    def test_remove_byte_order_mark(self):
+        decoder = SRTDecoder(filerange(TEST_BOM_SRT))
         decoder.read_file()
 
         line = decoder.filebuffer[0]
