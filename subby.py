@@ -1,5 +1,6 @@
 from typing import Callable
-from argparser import Commands
+from argparser import SUBCMD_INPUT_SINGLE, Commands, Subcommand,\
+        SubcommandArgument, ARG_ENABLE, SUBCMD_OUTPUT
 from srt import DecodeException, SRTDecoder, check_index_mismatch
 import stime
 
@@ -155,10 +156,61 @@ def display(args: argparse.Namespace) -> None:
         print("\tno issues")
 
     if args.missing:
-        print("Utility for determining missing line numbers not yet implemented")
+        print("Utility for determining missing line numbers not yet" \
+                " implemented")
+
+# SUBCOMMAND CONFIGURATION                                    subcommand_config
+
+subcommand_delay = Subcommand(
+        name = "delay",
+        function = delay,
+        helpstring = "Delay a range of subtitles by a specified amount",
+        args = [
+            SUBCMD_OUTPUT,
+            SubcommandArgument(
+                name = "-u",
+                helpstring = "Specify unit of delay (default: millisecond)",
+                long_name = "--unit",
+                choices = ("millisecond", "second", "minute", "ms", "s")),
+            SubcommandArgument(
+                name = "-x",
+                helpstring = "Encode only the specified range",
+                long_name = "--exclusive",
+                type = ARG_ENABLE),
+            SUBCMD_INPUT_SINGLE,
+            SubcommandArgument(
+                name = "delay",
+                helpstring = "Amount of units (see -u) to delay by",
+                display_name = "delay_by",
+                value_type = int)
+            ]
+        )
+
+subcommand_display = Subcommand(
+        name = "display",
+        function = display,
+        helpstring = "Display information about subtitle file",
+        args = [
+            SubcommandArgument(
+                name = "--long",
+                helpstring = "Display detailed information",
+                type = ARG_ENABLE),
+            SubcommandArgument(
+                name = "--missing",
+                helpstring = "Not implemented",
+                type = ARG_ENABLE),
+            SUBCMD_INPUT_SINGLE
+            ]
+        )
+
+default_subcommands_configuration = [
+        subcommand_display,
+        subcommand_delay
+        ]
 
 def main() -> None:
-    args = Commands().parse_args()
+    config = default_subcommands_configuration
+    args = Commands(config).parse_args()
 
     if args is None:
         # assume error was provided by validators in Commands
@@ -167,13 +219,9 @@ def main() -> None:
     if args.subcmd is None:
         print("Interactive mode coming soon! For now, use -h for help.")
 
-    elif args.subcmd == "delay":
-        delay(args)
-
-    elif args.subcmd == "display":
-        display(args)
-
-    return
+    for subcommand in config:
+        if args.subcmd == subcommand.name:
+            subcommand.function(args)
 
 if __name__ == "__main__":
     main()
