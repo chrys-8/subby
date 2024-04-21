@@ -45,22 +45,39 @@ def to_timerange(start_: str, end_: str) -> TimeRange | None:
     except ValueError:
         return None
 
+def split_filerange(value: str) -> tuple[str, str | None]:
+    '''Naïvely split filerange string on last colon'''
+    split = value.split(':')
+    if len(split) == 1:
+        # no specified range or other delimiters
+        return value, None
+
+    # use last split as range_str and join remainder
+    filename = ':'.join(split[:-1])
+    range_str = split[-1]
+    return filename, range_str
+
+def warn_filerange_fallback(range_str: str) -> None:
+    print(f"Cannot read range '{range_str}'; interpreting as filename")
+    print("WARNING: if you intended to specify a line range of timerange this"\
+            " action may destroy data unintentionally if you have overwrite"  \
+            " flag set")
+    print("It is recommended to only use the overwrite flag if you know what" \
+            " you're doing")
+
 def filerange(value: str) -> FileRange:
     '''Convert command line string to a FileRange'''
-    value_split = tuple(value.split(':', 1))
-
-    # no range
-    if len(value_split) == 1:
+    filename, range_str = split_filerange(value)
+    if range_str is None:
         return FileRange(value, None, None)
-
-    filename, range_str = value_split
 
     # split at range separator
     range_str_split = tuple(range_str.split('-'))
     if len(range_str_split) != 2:
-        print(f"Range '{range_str}' needs to be formatted as" \
-                " hh:mm:ss,mmm-hh:mm:ss,mmm or #n-#n")
-        raise ValueError
+        # fallback to filename
+        # TODO add range_str as separate flag option
+        warn_filerange_fallback(range_str)
+        return FileRange(value, None, None)
 
     start, end = range_str_split
     linerange = to_linerange(start, end)
@@ -71,5 +88,5 @@ def filerange(value: str) -> FileRange:
     if timerange is not None:
         return FileRange(filename, timerange, None)
 
-    print(f"Unknown range: '{range_str}'")
-    raise ValueError
+    warn_filerange_fallback(range_str)
+    return FileRange(value, None, None)
