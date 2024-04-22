@@ -1,4 +1,4 @@
-__pycache__/*
+**/__pycache__/*
 *.srt
 !test.srt
 !bom.srt

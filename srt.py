@@ -11,7 +11,6 @@ class FileStatistics:
     consecutive_blank_lines: tuple[int, ...] = ()
     missing_end_blank_line: bool = False
 
-
 @dataclass
 class SRTFile:
     filerange: FileRange
@@ -75,24 +74,35 @@ class ParserState(Enum):
 
 class SRTDecoder:
     '''Implement srt decoding'''
-    def __init__(self, filerange: FileRange) -> None:
+    def __init__(self, filerange: FileRange, encoding: str = "utf-8") -> None:
         self.filerange = filerange
+        self.encoding = encoding
 
         self.filebuffer: list[str] = []
         self.stats = FileStatistics(())
 
+    def set_encoding(self, encoding: str) -> None:
+        '''Set file encoding'''
+        self.encoding = encoding
+
     def read_file(self) -> None:
         '''Open file and read to buffer'''
         try:
-            file = open(self.filerange.filename, 'r')
+            with open(self.filerange.filename, 'r', \
+                    encoding = self.encoding) as file:
+                for line in file:
+                    line = line.strip('\n')
+                    self.filebuffer.append(line)
+
         except FileNotFoundError:
             print(f"{self.filerange.filename} cannot be opened")
             raise DecodeException
 
-        with file:
-            for line in file:
-                line = line.strip('\n')
-                self.filebuffer.append(line)
+        except UnicodeDecodeError as err:
+            print(f"Unicode encoding error encountered in" \
+                    " {self.filerange.filename}:")
+            print(err)
+            raise DecodeException
 
         # remove BOM from first line
         self.filebuffer[0] = remove_byte_order_mark(self.filebuffer[0])
@@ -159,7 +169,7 @@ class SRTDecoder:
             self.stats.missing_end_blank_line = True
 
         elif state is not ParserState.BeforeSubline:
-            raise DecodeException("Malformed subtitle file")
+            raise DecodeException
 
         self.cleanup()
         self.stats.consecutive_blank_lines = tuple(consecutive_blank_lines)

@@ -2,48 +2,57 @@ import argparse
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Type
 
-from filerange import filerange
+from filerange import FileRange, filerange
 
 def validate_input_filetype(args: argparse.Namespace) -> bool:
     '''Validate `args.input`; return false to stop execution'''
-
-    # TODO implement force
-    if not args.input.filename.endswith(".srt"):
-        print(f"'{args.input.filename}' is not an srt file")
+    filename: str = args.input.filename
+    if not filename.endswith(".srt"):
+        print(f"'{filename}' is not an srt file")
+        if ':' in filename:
+            print("If you specified a range, use -R to enable range parsing")
         return False
 
     return True
 
 def validate_many_input_filetypes(args: argparse.Namespace) -> bool:
     '''Validate srt filetypes in `args.input`; false if invalid'''
-
-    # TODO implement force
     for filerange_ in args.input:
         if not filerange_.filename.endswith(".srt"):
             print(f"'{filerange_.filename} is not an srt file")
+            if ':' in filerange_.filename:
+                print("If you specified a range, use -R to enable range" \
+                        " parsing")
             return False
 
     return True
 
+def parse_promised_filerange(args: argparse.Namespace) -> None:
+    '''Parse file input to FileRange depending on conditions'''
+    if args.use_ranges:
+        args.input = filerange(args.input)
+
+    else:
+        args.input = FileRange(args.input, None, None)
+
+def parse_many_promised_fileranges(args: argparse.Namespace) -> None:
+    '''Parser file input to FileRange conditionally for many inputs'''
+    parse_fn: Callable[[str], FileRange]
+    if args.use_ranges:
+        parse_fn = lambda input_: filerange(input_)
+
+    else:
+        parse_fn = lambda input_: FileRange(input_, None, None)
+
+    args.input = [parse_fn(value) for value in args.input]
+
 ValidatorType = Callable[[argparse.Namespace], bool]
+ProcessorType = Callable[[argparse.Namespace], None]
 
-def subcommand_validator(
-        validator: ValidatorType,
-        subcommand: str
-        ) -> ValidatorType:
-    '''Make validator function for specified subcommand'''
-
-    def wrapped(args: argparse.Namespace) -> bool:
-        if args.subcmd != subcommand:
-            return True # do not evaluate for other subcommands
-
-        return validator(args)
-
-    return wrapped
-
-ARG_VALUE   = "value"
-ARG_ENABLE  = "enable"
-ARG_DISABLE = "disable"
+ARG_VALUE    = "value"
+ARG_ENABLE   = "enable"
+ARG_DISABLE  = "disable"
+ARG_OPTIONAL = "optional"
 
 @dataclass
 class SubcommandArgument:
@@ -52,9 +61,10 @@ class SubcommandArgument:
     helpstring: str
     long_name: str | None = None
     display_name: str | None = None
-    type: Literal["value", "enable", "disable"] = ARG_VALUE
+    type: Literal["value", "enable", "disable", "optional"] = ARG_VALUE
     choices: tuple[str, ...] | None = None
-    value_type: Type = str
+    value_type: Any = str
+    default:Any = None
 
     def params(self) -> tuple[tuple[str,...], dict[str, Any]]:
         '''Yield params for adding to command line parser'''
@@ -75,11 +85,17 @@ class SubcommandArgument:
         if self.value_type is not str:
             options["type"] = self.value_type
 
+        if self.default is not None:
+            options["default"] = self.default
+
         if self.type == ARG_ENABLE:
             options["action"] = "store_true"
 
         elif self.type == ARG_DISABLE:
             options["action"] = "store_false"
+
+        elif self.type == ARG_OPTIONAL:
+            options["nargs"] = "?"
 
         return tuple(names), options
 
@@ -95,27 +111,59 @@ class Subcommand:
     function: Callable[[argparse.Namespace], None]
     args: list[SubcommandArgument | Literal["input_single", "input_many",\
             "output"]] | None = None
+    validators: list[ValidatorType] | None = None
+    post_processors: list[ProcessorType] | None = None
 
-class Commands:
+class Subparser:
+    '''Wrap ArgumentParser with validators and post processors'''
+
+    def __init__(self, parser: argparse.ArgumentParser) -> None:
+        self.parser = parser
+        self._validators: list[ValidatorType] = []
+        self._post_processors: list[ProcessorType] = []
+
+    def add_validator(self, validator: ValidatorType) -> None:
+        '''Add validator to parser'''
+        self._validators.append(validator)
+
+    def add_post_processor(self, post_processor: ProcessorType) -> None:
+        '''Add post_processor to parser'''
+        self._post_processors.append(post_processor)
+
+    def parse_args(self) -> argparse.Namespace:
+        '''Yield arguments from command line parsing'''
+        return self.parser.parse_args()
+
+    def run_post_processors(self, args: argparse.Namespace) -> None:
+        '''Perform post processing on arguments'''
+        for post_processor in self._post_processors:
+            post_processor(args)
+
+    def run_validators(self, args: argparse.Namespace) -> bool:
+        '''Run validation checks on arguments, false if any fail'''
+        for validator in self._validators:
+            if not validator(args):
+                return False
+
+        return True
+
+class CommandParser:
     '''Class for parsing command line input '''
 
     def __init__(self, subcommands: list[Subcommand]) -> None:
-        # TODO better help string
-        self._parser = argparse.ArgumentParser(
+        parser = argparse.ArgumentParser(
                 prog = "subby",
                 description = "Subtitle Editor")
 
-        self._validators: list[ValidatorType] = []
-        self._subcommands: dict[str, argparse.ArgumentParser] = {}
+        self._subparser = Subparser(parser)
+        self._subcommands: dict[str, Subparser] = {}
 
-        self._subparsers = self._parser.add_subparsers(
+        self._subparsers = parser.add_subparsers(
                 description = "Valid subcommands",
                 dest = "subcmd")
 
         for subcommand in subcommands:
             self.add_subcommand(subcommand)
-
-        #self.add_subcommand_delay()
 
     def add_subcommand(self, subcommand: Subcommand) -> None:
         '''Set flags for subcommand'''
@@ -123,7 +171,8 @@ class Commands:
                 subcommand.name,
                 help = subcommand.helpstring)
 
-        self._subcommands[subcommand.name] = parser
+        subparser = Subparser(parser)
+        self._subcommands[subcommand.name] = subparser
 
         if subcommand.args is None:
             return
@@ -142,79 +191,58 @@ class Commands:
                 args_, kwargs = args.params()
                 parser.add_argument(*args_, **kwargs)
 
-    def add_subcommand_delay(self) -> None:
-        '''Set flags for delay subcommand'''
+        if subcommand.validators is not None:
+            for validator in subcommand.validators:
+                subparser.add_validator(validator)
 
-        subcommand = "delay"
-        helpstring = "Specify unit of delay (default millisecond)"
-
-        delay_parser = self._subparsers.add_parser(
-                subcommand,
-                help = helpstring
-                )
-
-        self._subcommands[subcommand] = delay_parser
-
-        # TODO abstract? Commands class perhaps shouldn't be tied to the
-        # implementation of subcommands, and perhaps should deal with generic
-        # flag parsing, given specific input
-        self.add_single_file_input(subcommand)
-        self.add_file_output_flags_for_subcommand(subcommand)
-
-        delay_parser.add_argument(
-                "-u",
-                "--unit",
-                choices = ("millisecond", "second", "minute", "ms", "s"),
-                help = helpstring)
-
-        # default behaviour is add delay to specifid range and encode the
-        # entire file, with only the range modified
-        delay_parser.add_argument(
-                "-x",
-                "--exclusive",
-                action = "store_true",
-                help = "Encode only the specified range; use this to trim " \
-                        "files")
-
-        delay_parser.add_argument(
-                "delay",
-                metavar = "delay_by",
-                type = int,
-                help = "Delay subtitle lines (default unit milliseconds")
+        if subcommand.post_processors is not None:
+            for post_processor in subcommand.post_processors:
+                subparser.add_post_processor(post_processor)
 
     def add_single_file_input(self, subcommand: str) -> None:
         '''Add flags and validators for single file input'''
 
         # TODO better help string for `input`
         helpstring = "The input file"
+        use_ranges_help_string = "Enable parsing for ranges of lines or" \
+                " timestamps"
 
-        parser = self._subcommands[subcommand]
-        validator = subcommand_validator(validate_input_filetype, subcommand)
+        subparser = self._subcommands[subcommand]
+        parser = subparser.parser
+        validator = validate_input_filetype
+        post_processor = parse_promised_filerange
 
-        parser.add_argument("input", type = filerange, help = helpstring)
-        self._validators.append(validator)
+        parser.add_argument("input", help = helpstring)
+        parser.add_argument("-R", "--use-ranges", action = "store_true", \
+                help = use_ranges_help_string)
+        subparser.add_validator(validator)
+        subparser.add_post_processor(post_processor)
 
     def add_multiple_file_input(self, subcommand: str) -> None:
         '''Add flags and validators for multiple file input'''
 
         # TODO better help string for `input`
         helpstring = "The input file"
+        use_ranges_help_string = "Enable parsing for ranges of lines or" \
+                " timestamps"
 
-        parser = self._subcommands[subcommand]
-        validator = subcommand_validator(validate_many_input_filetypes,
-                                         subcommand)
+        subparser = self._subcommands[subcommand]
+        parser = subparser.parser
+        validator = validate_many_input_filetypes
+        post_processor = parse_many_promised_fileranges
 
-        parser.add_argument("input",
-                            type = filerange,
-                            nargs = '+',        # yields a list
-                            help = helpstring)
-
-        self._validators.append(validator)
+        parser.add_argument("input", nargs = '+', help = helpstring)
+        parser.add_argument("-R", "--use-ranges", action = "store_true", \
+                help = use_ranges_help_string)
+        subparser.add_validator(validator)
+        subparser.add_post_processor(post_processor)
 
     def add_file_output_flags_for_subcommand(self, subcommand: str) -> None:
-        '''Add flags and validators for file output processing for a subcommand'''
+        '''Add flags and validators for file output processing for a
+        subcommand'''
 
-        parser = self._subcommands[subcommand]
+        subparser = self._subcommands[subcommand]
+        parser = subparser.parser
         group = parser.add_mutually_exclusive_group(required = True)
 
         group.add_argument(
@@ -232,10 +260,16 @@ class Commands:
                         " conflicts with -o")
 
     def parse_args(self) -> argparse.Namespace | None:
-        args =  self._parser.parse_args()
-        for validator in self._validators:
-            if not validator(args):
-                return None
+        args = self._subparser.parse_args()
+        self._subparser.run_post_processors(args)
+        if not self._subparser.run_validators(args):
+            return
+
+        subcmd_subparser = self._subcommands.get(args.subcmd)
+        if subcmd_subparser is not None:
+            subcmd_subparser.run_post_processors(args)
+            if not subcmd_subparser.run_validators(args):
+                return
 
         return args
 
