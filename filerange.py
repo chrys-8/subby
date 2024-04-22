@@ -75,7 +75,6 @@ def filerange(value: str) -> FileRange:
     range_str_split = tuple(range_str.split('-'))
     if len(range_str_split) != 2:
         # fallback to filename
-        # TODO add range_str as separate flag option
         warn_filerange_fallback(range_str)
         return FileRange(value, None, None)
 

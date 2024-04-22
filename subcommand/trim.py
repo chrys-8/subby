@@ -56,7 +56,7 @@ def option_range(value: str) -> tuple[bool, str]:
 subcommand_trim = Subcommand(
         name = "trim",
         function = trim,
-        helpstring = "TODO add help string",
+        helpstring = "Trim to specified range of lines or timestamps",
         args = [
             SUBCMD_OUTPUT,
             SUBCMD_INPUT_SINGLE,

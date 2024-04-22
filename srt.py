@@ -15,6 +15,7 @@ class FileStatistics:
 class SRTFile:
     filerange: FileRange
     sublines: list[SubtitleLine]
+    encoding: str
 
     def print(self) -> None:
         '''Output to stdout'''
@@ -28,7 +29,7 @@ class SRTFile:
         '''Output to file'''
 
         try:
-            file = open(outputFilename, 'w')
+            file = open(outputFilename, 'w', encoding = self.encoding)
         except OSError:
             return False
 
@@ -173,7 +174,7 @@ class SRTDecoder:
 
         self.cleanup()
         self.stats.consecutive_blank_lines = tuple(consecutive_blank_lines)
-        return SRTFile(self.filerange, sublines)
+        return SRTFile(self.filerange, sublines, self.encoding)
 
 # Structure checks
 def check_index_mismatch(file: SRTFile) -> list[tuple[int, int]]:
