@@ -1,5 +1,6 @@
 **/__pycache__/*
 *.srt
+*.sub
 !test.srt
 !bom.srt
 tags
