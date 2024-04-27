@@ -1,16 +1,18 @@
 import argparse
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, Type
+from typing import Any, Callable, Literal
 
 from filerange import FileRange, filerange
+from logger import LogFormatter, LogFlags, error, warn, LEVEL_DEBUG
 
 def validate_input_filetype(args: argparse.Namespace) -> bool:
     '''Validate `args.input`; return false to stop execution'''
     filename: str = args.input.filename
     if not filename.endswith(".srt"):
-        print(f"'{filename}' is not an srt file")
+        error(f"'{filename}' is not an srt file\n")
         if ':' in filename:
-            print("If you specified a range, use -R to enable range parsing")
+            warn("If you specified a range, use -R to enable range" \
+                    " parsing\n")
         return False
 
     return True
@@ -19,10 +21,10 @@ def validate_many_input_filetypes(args: argparse.Namespace) -> bool:
     '''Validate srt filetypes in `args.input`; false if invalid'''
     for filerange_ in args.input:
         if not filerange_.filename.endswith(".srt"):
-            print(f"'{filerange_.filename} is not an srt file")
+            error(f"'{filerange_.filename} is not an srt file\n")
             if ':' in filerange_.filename:
-                print("If you specified a range, use -R to enable range" \
-                        " parsing")
+                warn("If you specified a range, use -R to enable" \
+                        " range parsing\n")
             return False
 
     return True
@@ -147,12 +149,14 @@ class Subparser:
 
         return True
 
+PROG_NAME = "subby"
+
 class CommandParser:
     '''Class for parsing command line input '''
 
     def __init__(self, subcommands: list[Subcommand]) -> None:
         parser = argparse.ArgumentParser(
-                prog = "subby",
+                prog = PROG_NAME,
                 description = "Subtitle Editor")
 
         self._subparser = Subparser(parser)
@@ -260,8 +264,14 @@ class CommandParser:
                         " conflicts with -o")
 
     def parse_args(self) -> argparse.Namespace | None:
+        '''Parse CLI with post-processing and validators'''
         args = self._subparser.parse_args()
         self._subparser.run_post_processors(args)
+
+        log_flags = LogFlags(name = PROG_NAME)
+        args.log_formatter = LogFormatter(log_flags)
+        args.log_formatter.set_as_global_logger()
+
         if not self._subparser.run_validators(args):
             return
 

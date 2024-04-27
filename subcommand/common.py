@@ -1,9 +1,12 @@
 import argparse
 from typing import Callable
+
 from filerange import FileRange
+from logger import error, info
 from srt import SRTFile
 from subtitles import SubtitleLine
 import stime
+import term
 
 def in_linerange(linerange: tuple[int, int]) -> Callable[[SubtitleLine], bool]:
     '''Yield filter function for linerange'''
@@ -40,16 +43,17 @@ def save_subtitle_file(file: SRTFile, args: argparse.Namespace) -> None:
     filename: str
     if args.overwrite:
         filename = file.filerange.filename
-        print(f"Overwriting '{filename}' with {len(file.sublines)} lines")
+        info(f"Overwriting '{filename}' with {len(file.sublines)} lines\n")
         write_success = file.save_to_file()
 
     else:
         filename = args.output
-        print(f"Writing {len(file.sublines)} lines to '{filename}'")
+        info(f"Writing {len(file.sublines)} lines to '{filename}'\n")
         write_success = file.write_to_file(filename)
 
     if write_success:
-        print("Finished!")
+        # TODO green success
+        info("Finished!\n")
 
     else:
-        print(f"Fatal error: could not save file '{filename}'")
+        error(f"Fatal error: could not save file '{filename}'\n")

@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import Any, Callable
 from dataclasses import dataclass
 
+from logger import debug, error, warn
 from subtitles import SubtitleLine
 from stime import TimeRange, Time
 from filerange import FileRange
@@ -57,10 +58,20 @@ class SRTFile:
         '''Sort subtitles by ascending start time'''
         self.sublines.sort(key = lambda line: line.duration.begin.value)
 
+def remove_byte_order_mark_utf8(line: str) -> str:
+    '''Remove BOM from files with unicode encoding'''
+    # fic the Mikoláš bug, since unicode handles bom encoding differently
+    line_bytes = [ord(c) for c in line[:5]]
+    if line_bytes[0] == 0xfeff:
+        return line[1:]
+
+    return line
+
 def remove_byte_order_mark(line: str) -> str:
     '''Remove BOM at beginning of file'''
     if line.startswith("\xEF\xBB\xBF"):
         line = line[3:]
+
     return line
 
 class DecodeException(Exception):
@@ -96,17 +107,30 @@ class SRTDecoder:
                     self.filebuffer.append(line)
 
         except FileNotFoundError:
-            print(f"{self.filerange.filename} cannot be opened")
+            error(f"{self.filerange.filename} cannot be opened\n")
             raise DecodeException
 
         except UnicodeDecodeError as err:
-            print(f"Unicode encoding error encountered in" \
-                    " {self.filerange.filename}:")
-            print(err)
-            raise DecodeException
+            # TODO tidy up; add flags for changing encoding
+            if self.encoding != "utf-8":
+                error(f"Encoding error encountered in"\
+                        f" {self.filerange.filename}:\n")
+                error(f"{err!s}\n")
+                raise DecodeException
+
+            warn(f"Encoding error encountered in {self.filerange.filename}:\n")
+            warn(f"{err!s}\n")
+            warn(f"Attempting to decode with a different code page\n")
+            self.encoding = "cp1252"
+            self.read_file()
 
         # remove BOM from first line
-        self.filebuffer[0] = remove_byte_order_mark(self.filebuffer[0])
+        if self.encoding == "utf-8":
+            self.filebuffer[0] = remove_byte_order_mark_utf8(
+                    self.filebuffer[0])
+
+        else:
+            self.filebuffer[0] = remove_byte_order_mark(self.filebuffer[0])
 
     def cleanup(self) -> None:
         '''Free filebuffer'''
@@ -168,6 +192,8 @@ class SRTDecoder:
             # missing blank line at EOF
             sublines.append(SubtitleLine(index, duration, content))
             self.stats.missing_end_blank_line = True
+            warn(f"Warning: '{self.filerange.filename}' is missing a blank" \
+                    " line at the end of the file\n")
 
         elif state is not ParserState.BeforeSubline:
             raise DecodeException

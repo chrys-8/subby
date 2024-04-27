@@ -1,5 +1,6 @@
 import argparse
 
+from logger import error, info
 import stime
 from srt import SRTDecoder, DecodeException
 from argparser import Subcommand, SUBCMD_OUTPUT, SubcommandArgument,\
@@ -10,10 +11,10 @@ def delay(args: argparse.Namespace) -> None:
     '''Implement delay for subtitle range'''
 
     try:
-        print(f"Reading '{args.input.filename}'")
+        info(f"Reading '{args.input.filename}'\n")
         srtfile = SRTDecoder(args.input).decode()
     except DecodeException:
-        print("Could not decode file")
+        error("Could not decode file\n")
         return
 
     srtfile.sort_subtitles()
@@ -43,7 +44,7 @@ def delay(args: argparse.Namespace) -> None:
         else:
             exclusive_mask.append(False)
 
-    print(f"Modified {counter} of {len(srtfile.sublines)} lines")
+    info(f"Modified {counter} of {len(srtfile.sublines)} lines\n")
 
     # exclusive flags
     if args.exclusive:

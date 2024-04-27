@@ -3,6 +3,7 @@ import argparse
 from argparser import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Subcommand, \
         SubcommandArgument, ARG_OPTIONAL
 from filerange import FileRange, filerange
+from logger import error, info
 from srt import SRTDecoder, DecodeException
 from subcommand.common import save_subtitle_file, filerange_filter_function
 
@@ -12,7 +13,7 @@ def trim(args: argparse.Namespace) -> None:
     input_: FileRange
     if range_provided:
         # TODO nicer representation of range
-        print(f"Using provided range: {input_range!s}")
+        info(f"Using provided range: {input_range!s}\n")
         input_ = input_range
         input_.filename = args.input.filename
 
@@ -20,10 +21,10 @@ def trim(args: argparse.Namespace) -> None:
         input_ = args.input
 
     try:
-        print(f"Reading '{args.input.filename}'")
+        info(f"Reading '{args.input.filename}'\n")
         srtfile = SRTDecoder(input_).decode()
     except DecodeException:
-        print("Could not decode file")
+        error("Could not decode file\n")
         return
 
     srtfile.sort_subtitles()
@@ -44,7 +45,7 @@ def validate_no_range_conflict(args: argparse.Namespace) -> bool:
     '''Check whether conflicting flags have been set'''
     provided, _ = args.range
     if provided and args.use_ranges:
-        print("Cannot have conflicting ranges")
+        error("Cannot have conflicting ranges\n")
         return False
 
     return True

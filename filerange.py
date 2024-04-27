@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from stime import TimeRange, Time
+from logger import warn
 
 @dataclass
 class FileRange:
@@ -58,12 +59,12 @@ def split_filerange(value: str) -> tuple[str, str | None]:
     return filename, range_str
 
 def warn_filerange_fallback(range_str: str) -> None:
-    print(f"Cannot read range '{range_str}'; interpreting as filename")
-    print("WARNING: if you intended to specify a line range of timerange,"    \
+    warn(f"Cannot read range '{range_str}'; interpreting as filename\n")
+    warn("WARNING: if you intended to specify a line range of timerange,"    \
             " this action may destroy data unintentionally if you have"       \
-            " overwrite flag set")
-    print("It is recommended to only use the overwrite flag if you know what" \
-            " you're doing")
+            " overwrite flag set\n")
+    warn("It is recommended to only use the overwrite flag if you know what" \
+            " you're doing\n")
 
 def filerange(value: str) -> FileRange:
     '''Convert command line string to a FileRange'''

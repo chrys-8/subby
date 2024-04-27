@@ -1,14 +1,16 @@
 import argparse
+
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, check_index_mismatch
 from argparser import SUBCMD_INPUT_MANY, Subcommand, SubcommandArgument, \
         ARG_ENABLE
+from logger import warn, error, info
 
 def display_one(filerange: FileRange, args: argparse.Namespace) -> None:
     '''Implement display subcommand'''
 
     if filerange.linerange is not None or filerange.timerange is not None:
-        print(f"Ignoring provided range for {filerange.filename}...")
+        warn(f"Ignoring provided range for {filerange.filename}...\n")
 
     useLongInfo: bool = args.long
 
@@ -17,61 +19,61 @@ def display_one(filerange: FileRange, args: argparse.Namespace) -> None:
         decoder = SRTDecoder(filerange)
         srtfile = decoder.decode()
     except DecodeException:
-        print("Could not decode file")
+        error("Could not decode file\n")
         return
 
     srtfile.sort_subtitles()
 
-    print(f"srt subtitles: {srtfile.filerange.filename}")
-    print(f"\tcontains {len(srtfile.sublines)} lines")
+    info(f"srt subtitles: {srtfile.filerange.filename}\n")
+    info(f"\tcontains {len(srtfile.sublines)} lines\n")
 
     hasIssues = False
 
     # consecutive blank lines
     if len(decoder.stats.consecutive_blank_lines) != 0:
         cases = len(decoder.stats.consecutive_blank_lines)
-        print(f"\t{cases} cases of consecutive blank lines")
+        info(f"\t{cases} cases of consecutive blank lines\n")
         hasIssues = True
 
         if useLongInfo:
             line_numbers = (str(index)
                             for index in decoder.stats.consecutive_blank_lines)
 
-            print(f"\ton line numbers: {', '.join(line_numbers)}")
+            info(f"\ton line numbers: {', '.join(line_numbers)}\n")
 
     # missing terminating blank line
     if decoder.stats.missing_end_blank_line:
-        print(f"\tmissing terminating blank line")
+        warn(f"\tmissing terminating blank line\n")
         hasIssues = True
 
     # index mismatches
     mismatches = check_index_mismatch(srtfile)
     if len(mismatches) != 0:
-        print(f"\t{len(mismatches)} cases of mismatched line indices")
-        print("\tthis might suggest missing lines")
+        warn(f"\t{len(mismatches)} cases of mismatched line indices\n")
+        warn("\tthis might suggest missing lines\n")
         hasIssues = True
 
         if useLongInfo:
-            print("Reported line number\tActual line number")
+            info("Reported line number\tActual line number\n")
             for reported, actual in mismatches:
-                print(f"{reported}\t{actual}")
+                info(f"{reported}\t{actual}\n")
 
     if not hasIssues:
-        print("\tno issues")
+        info("\tno issues\n")
 
     if args.missing:
-        print("Utility for determining missing line numbers not yet" \
-                " implemented")
+        warn("Utility for determining missing line numbers not yet" \
+                " implemented\n")
 
 def display(args: argparse.Namespace) -> None:
     '''Implement display subcommand for multiple files'''
     input_count = len(args.input)
     if input_count > 1:
-        print(f"Displaying information for {input_count} files\n\n", end = "")
+        info(f"Displaying information for {input_count} files\n\n")
 
     for filerange in args.input:
         display_one(filerange, args)
-        print("\n", end = "")
+        info("\n")
 
 subcommand_display = Subcommand(
         name = "display",
