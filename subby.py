@@ -1,6 +1,9 @@
-from argparser import CommandParser
+# extend import paths
+import sys
+sys.path.append("./src/")
 
-from logger import debug, info
+from argparser import CommandParser
+from logger import info
 from subcommand.display import subcommand_display
 from subcommand.delay import subcommand_delay
 from subcommand.trim import subcommand_trim

@@ -1,10 +1,12 @@
 import unittest
+import sys
+sys.path.append("./src/")
 
 from srt import DecodeException, SRTDecoder
 from stime import Time
 from filerange import filerange
 
-TEST_SRT = "test.srt"
+TEST_SRT = "test/test.srt"
 
 TEST_SRT_DATA = [
         {
@@ -39,9 +41,9 @@ TEST_SRT_DATA = [
 
 TEST_DELAY = 15000
 
-TEST_BOM_SRT = "test_bom.srt"
-TEST_MISSING_EOF = "test_missing_end_blank.srt"
-TEST_ICB = "test_icb.srt"
+TEST_BOM_SRT = "test/test_bom.srt"
+TEST_MISSING_EOF = "test/test_missing_end_blank.srt"
+TEST_ICB = "test/test_icb.srt"
 
 class SubtitleFileTestCase(unittest.TestCase):
 
