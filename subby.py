@@ -15,14 +15,12 @@ def main() -> None:
     config = default_subcommands_configuration
     args = CommandParser(config).parse_args()
 
-    debug("Just so you know debug logging is enabled\n")
-
     if args is None:
         # assume error was provided by validators in CommandParser
         return
 
     if args.subcmd is None:
-        info("Interactive mode coming soon! For now, use -h for help.\n")
+        info("Interactive mode coming soon! For now, use -h for help.")
 
     for subcommand in config:
         if args.subcmd == subcommand.name:

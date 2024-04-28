@@ -43,17 +43,17 @@ def save_subtitle_file(file: SRTFile, args: argparse.Namespace) -> None:
     filename: str
     if args.overwrite:
         filename = file.filerange.filename
-        info(f"Overwriting '{filename}' with {len(file.sublines)} lines\n")
+        info(f"Overwriting '{filename}' with {len(file.sublines)} lines")
         write_success = file.save_to_file()
 
     else:
         filename = args.output
-        info(f"Writing {len(file.sublines)} lines to '{filename}'\n")
+        info(f"Writing {len(file.sublines)} lines to '{filename}'")
         write_success = file.write_to_file(filename)
 
     if write_success:
         # TODO green success
-        info("Finished!\n")
+        info("Finished!")
 
     else:
-        error(f"Fatal error: could not save file '{filename}'\n")
+        error(f"Fatal error: could not save file '{filename}'")

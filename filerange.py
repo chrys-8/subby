@@ -59,12 +59,12 @@ def split_filerange(value: str) -> tuple[str, str | None]:
     return filename, range_str
 
 def warn_filerange_fallback(range_str: str) -> None:
-    warn(f"Cannot read range '{range_str}'; interpreting as filename\n")
+    warn(f"Cannot read range '{range_str}'; interpreting as filename")
     warn("WARNING: if you intended to specify a line range of timerange,"    \
             " this action may destroy data unintentionally if you have"       \
-            " overwrite flag set\n")
+            " overwrite flag set")
     warn("It is recommended to only use the overwrite flag if you know what" \
-            " you're doing\n")
+            " you're doing")
 
 def filerange(value: str) -> FileRange:
     '''Convert command line string to a FileRange'''

@@ -3,16 +3,16 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
 from filerange import FileRange, filerange
-from logger import LogFormatter, LogFlags, error, warn, LEVEL_DEBUG
+from logger import LEVEL_INFO, LEVEL_QUIET, LEVEL_VERBOSE, LogFormatter,\
+        LogFlags, error, warn, LEVEL_DEBUG
 
 def validate_input_filetype(args: argparse.Namespace) -> bool:
     '''Validate `args.input`; return false to stop execution'''
     filename: str = args.input.filename
     if not filename.endswith(".srt"):
-        error(f"'{filename}' is not an srt file\n")
+        error(f"'{filename}' is not an srt file")
         if ':' in filename:
-            warn("If you specified a range, use -R to enable range" \
-                    " parsing\n")
+            warn("If you specified a range, use -R to enable range parsing")
         return False
 
     return True
@@ -21,10 +21,10 @@ def validate_many_input_filetypes(args: argparse.Namespace) -> bool:
     '''Validate srt filetypes in `args.input`; false if invalid'''
     for filerange_ in args.input:
         if not filerange_.filename.endswith(".srt"):
-            error(f"'{filerange_.filename} is not an srt file\n")
+            error(f"'{filerange_.filename} is not an srt file")
             if ':' in filerange_.filename:
                 warn("If you specified a range, use -R to enable" \
-                        " range parsing\n")
+                        " range parsing")
             return False
 
     return True
@@ -38,7 +38,7 @@ def parse_promised_filerange(args: argparse.Namespace) -> None:
         args.input = FileRange(args.input, None, None)
 
 def parse_many_promised_fileranges(args: argparse.Namespace) -> None:
-    '''Parser file input to FileRange conditionally for many inputs'''
+    '''Parse file input to FileRange conditionally for many inputs'''
     parse_fn: Callable[[str], FileRange]
     if args.use_ranges:
         parse_fn = lambda input_: filerange(input_)
@@ -47,6 +47,23 @@ def parse_many_promised_fileranges(args: argparse.Namespace) -> None:
         parse_fn = lambda input_: FileRange(input_, None, None)
 
     args.input = [parse_fn(value) for value in args.input]
+
+def parse_logging_level(args: argparse.Namespace) -> None:
+    '''Determine logging level from flag presence'''
+    if args.quiet:
+        args.verbosity = LEVEL_QUIET
+        return
+
+    if args.debug:
+        args.verbosity = LEVEL_DEBUG
+        return
+
+    if args.verbose:
+        args.verbosity = LEVEL_VERBOSE
+        return
+
+    args.verbosity = LEVEL_INFO
+    return
 
 ValidatorType = Callable[[argparse.Namespace], bool]
 ProcessorType = Callable[[argparse.Namespace], None]
@@ -152,9 +169,14 @@ class Subparser:
 PROG_NAME = "subby"
 
 class CommandParser:
-    '''Class for parsing command line input '''
+    '''Class for parsing command line input
 
-    def __init__(self, subcommands: list[Subcommand]) -> None:
+    Constructor Parameters:
+        `no_print_flags` bool: if True, print flags will not be added to the
+            command line parser (defaults to False)
+    '''
+
+    def __init__(self, subcommands: list[Subcommand], **options) -> None:
         parser = argparse.ArgumentParser(
                 prog = PROG_NAME,
                 description = "Subtitle Editor")
@@ -162,12 +184,41 @@ class CommandParser:
         self._subparser = Subparser(parser)
         self._subcommands: dict[str, Subparser] = {}
 
+        if not options.get("no_print_flags", False):
+            self.add_print_flags()
+
         self._subparsers = parser.add_subparsers(
                 description = "Valid subcommands",
                 dest = "subcmd")
 
         for subcommand in subcommands:
             self.add_subcommand(subcommand)
+
+    def add_print_flags(self) -> None:
+        """Set flags for printing and logging levels"""
+        parser = self._subparser.parser
+
+        parser.add_argument(
+                "-V",
+                "--verbose",
+                action = "store_true",
+                help = "Enable verbose feedback"
+                )
+
+        parser.add_argument(
+                "--debug",
+                action = "store_true",
+                help = "Enable debug feedback"
+                )
+
+        parser.add_argument(
+                "-q",
+                "--quiet",
+                action = "store_true",
+                help = "Print no output; use this if you batch commands"
+                )
+
+        self._subparser.add_post_processor(parse_logging_level)
 
     def add_subcommand(self, subcommand: Subcommand) -> None:
         '''Set flags for subcommand'''
@@ -268,7 +319,7 @@ class CommandParser:
         args = self._subparser.parse_args()
         self._subparser.run_post_processors(args)
 
-        log_flags = LogFlags(name = PROG_NAME)
+        log_flags = LogFlags(name = PROG_NAME, verbosity = args.verbosity)
         args.log_formatter = LogFormatter(log_flags)
         args.log_formatter.set_as_global_logger()
 

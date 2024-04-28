@@ -2,7 +2,7 @@ from enum import Enum, auto
 from typing import Any, Callable
 from dataclasses import dataclass
 
-from logger import debug, error, warn
+from logger import error, verbose, warn
 from subtitles import SubtitleLine
 from stime import TimeRange, Time
 from filerange import FileRange
@@ -63,6 +63,7 @@ def remove_byte_order_mark_utf8(line: str) -> str:
     # fic the Mikoláš bug, since unicode handles bom encoding differently
     line_bytes = [ord(c) for c in line[:5]]
     if line_bytes[0] == 0xfeff:
+        verbose("Byte order mark detected in file")
         return line[1:]
 
     return line
@@ -70,6 +71,7 @@ def remove_byte_order_mark_utf8(line: str) -> str:
 def remove_byte_order_mark(line: str) -> str:
     '''Remove BOM at beginning of file'''
     if line.startswith("\xEF\xBB\xBF"):
+        verbose("Byte order mark detected in file")
         line = line[3:]
 
     return line
@@ -96,6 +98,7 @@ class SRTDecoder:
     def set_encoding(self, encoding: str) -> None:
         '''Set file encoding'''
         self.encoding = encoding
+        verbose(f"Encoding set to {encoding}")
 
     def read_file(self) -> None:
         '''Open file and read to buffer'''
@@ -107,22 +110,22 @@ class SRTDecoder:
                     self.filebuffer.append(line)
 
         except FileNotFoundError:
-            error(f"{self.filerange.filename} cannot be opened\n")
+            error(f"{self.filerange.filename} cannot be opened")
             raise DecodeException
 
         except UnicodeDecodeError as err:
-            # TODO tidy up; add flags for changing encoding
-            if self.encoding != "utf-8":
-                error(f"Encoding error encountered in"\
-                        f" {self.filerange.filename}:\n")
-                error(f"{err!s}\n")
-                raise DecodeException
+            if err.reason == "invalid continuation byte":
+                verbose("Invalid unicode sequence detected")
+                self.set_encoding("latin-1")
+                self.read_file()
+                return
 
-            warn(f"Encoding error encountered in {self.filerange.filename}:\n")
-            warn(f"{err!s}\n")
-            warn(f"Attempting to decode with a different code page\n")
-            self.encoding = "cp1252"
-            self.read_file()
+            error(f"Encoding error encountered in {self.filerange.filename}:")
+            error(f"{err!s}")
+            raise DecodeException
+
+        verbose(f"{self.filerange.filename} read with {self.encoding}"\
+                " encoding")
 
         # remove BOM from first line
         if self.encoding == "utf-8":
@@ -193,10 +196,12 @@ class SRTDecoder:
             sublines.append(SubtitleLine(index, duration, content))
             self.stats.missing_end_blank_line = True
             warn(f"Warning: '{self.filerange.filename}' is missing a blank" \
-                    " line at the end of the file\n")
+                    " line at the end of the file")
 
         elif state is not ParserState.BeforeSubline:
             raise DecodeException
+
+        verbose(f"Decoded {self.filerange.filename}")
 
         self.cleanup()
         self.stats.consecutive_blank_lines = tuple(consecutive_blank_lines)

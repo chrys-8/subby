@@ -1,6 +1,6 @@
 import unittest
 
-from srt import SRTDecoder
+from srt import DecodeException, SRTDecoder
 from stime import Time
 from filerange import filerange
 
@@ -39,7 +39,9 @@ TEST_SRT_DATA = [
 
 TEST_DELAY = 15000
 
-TEST_BOM_SRT = "bom.srt"
+TEST_BOM_SRT = "test_bom.srt"
+TEST_MISSING_EOF = "test_missing_end_blank.srt"
+TEST_ICB = "test_icb.srt"
 
 class SubtitleFileTestCase(unittest.TestCase):
 
@@ -80,7 +82,33 @@ class SubtitleFileTestCase(unittest.TestCase):
         line = decoder.filebuffer[0]
         self.assertEqual(line.startswith("\xEF\xBB\xBF"), False)
 
+        file = decoder.decode()
+        self.assertEqual(len(file.sublines), 1)
+
         decoder.cleanup()
+
+    def test_missing_blank_line_end_of_file(self):
+        decoder = SRTDecoder(filerange(TEST_MISSING_EOF))
+
+        file = decoder.decode()
+        self.assertEqual(len(file.sublines), 4)
+
+        stats = decoder.stats
+        self.assertEqual(stats.missing_end_blank_line, True)
+
+        decoder_normal = SRTDecoder(filerange(TEST_SRT))
+        decoder_normal.decode()
+        self.assertEqual(decoder_normal.stats.missing_end_blank_line, False)
+
+    def test_detect_non_unicode_encoding(self):
+        try:
+            decoder = SRTDecoder(filerange(TEST_ICB))
+            decoder.decode()
+            self.assertEqual(decoder.encoding, "latin-1")
+
+        except DecodeException:
+            self.fail("Test file is not decoded correctly")
+
 
 if __name__ == "__main__":
     unittest.main()

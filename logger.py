@@ -17,6 +17,7 @@ LEVEL_VERBOSE = -1
 LEVEL_INFO = 0
 LEVEL_WARN = 1
 LEVEL_ERROR = 2
+LEVEL_QUIET = 1000
 
 LEVELS = {
         LEVEL_DEBUG : {
@@ -69,35 +70,35 @@ class LogFlags:
 
 global_logger: Logger | None = None
 
-def debug(text: str) -> None:
+def debug(text: str, end: str = '\n') -> None:
     '''Run debug from global logger'''
     global global_logger
     if global_logger is not None:
-        global_logger.debug(text)
+        global_logger.debug(text + end)
 
-def verbose(text: str) -> None:
+def verbose(text: str, end: str = '\n') -> None:
     '''Run verbose from global logger'''
     global global_logger
     if global_logger is not None:
-        global_logger.verbose(text)
+        global_logger.verbose(text + end)
 
-def info(text: str) -> None:
+def info(text: str, end: str = '\n') -> None:
     '''Run info from global logger'''
     global global_logger
     if global_logger is not None:
-        global_logger.info(text)
+        global_logger.info(text + end)
 
-def warn(text: str) -> None:
+def warn(text: str, end: str = '\n') -> None:
     '''Run warn from global logger'''
     global global_logger
     if global_logger is not None:
-        global_logger.warn(text)
+        global_logger.warn(text + end)
 
-def error(text: str) -> None:
+def error(text: str, end: str = '\n') -> None:
     '''Run error from global logger'''
     global global_logger
     if global_logger is not None:
-        global_logger.error(text)
+        global_logger.error(text + end)
 
 class LogFormatter:
     '''Implement formatting for logging output'''

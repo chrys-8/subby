@@ -13,7 +13,7 @@ def trim(args: argparse.Namespace) -> None:
     input_: FileRange
     if range_provided:
         # TODO nicer representation of range
-        info(f"Using provided range: {input_range!s}\n")
+        info(f"Using provided range: {input_range!s}")
         input_ = input_range
         input_.filename = args.input.filename
 
@@ -21,10 +21,10 @@ def trim(args: argparse.Namespace) -> None:
         input_ = args.input
 
     try:
-        info(f"Reading '{args.input.filename}'\n")
+        info(f"Reading '{args.input.filename}'")
         srtfile = SRTDecoder(input_).decode()
     except DecodeException:
-        error("Could not decode file\n")
+        error("Could not decode file")
         return
 
     srtfile.sort_subtitles()
@@ -45,7 +45,7 @@ def validate_no_range_conflict(args: argparse.Namespace) -> bool:
     '''Check whether conflicting flags have been set'''
     provided, _ = args.range
     if provided and args.use_ranges:
-        error("Cannot have conflicting ranges\n")
+        error("Cannot have conflicting ranges")
         return False
 
     return True
