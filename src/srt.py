@@ -2,7 +2,7 @@ from enum import Enum, auto
 from typing import Any, Callable
 from dataclasses import dataclass
 
-from logger import error, verbose, warn
+from logger import debug, error, verbose, warn
 from subtitles import SubtitleLine
 from stime import TimeRange, Time
 from filerange import FileRange
@@ -102,12 +102,17 @@ class SRTDecoder:
 
     def read_file(self) -> None:
         '''Open file and read to buffer'''
+        # really frustrating I didn't think to put this in!!!!
+        # probably fixes Vector Frankenstein's Bug (#8)
+        if len(self.filebuffer) != 0:
+            self.filebuffer.clear()
+
+        do_retry_decoding = False
+        file = open(self.filerange.filename, 'r', encoding = self.encoding)
         try:
-            with open(self.filerange.filename, 'r', \
-                    encoding = self.encoding) as file:
-                for line in file:
-                    line = line.strip('\n')
-                    self.filebuffer.append(line)
+            for line in file:
+                line = line.strip('\n')
+                self.filebuffer.append(line)
 
         except FileNotFoundError:
             error(f"{self.filerange.filename} cannot be opened")
@@ -117,12 +122,24 @@ class SRTDecoder:
             if err.reason == "invalid continuation byte":
                 verbose("Invalid unicode sequence detected")
                 self.set_encoding("latin-1")
-                self.read_file()
-                return
+                do_retry_decoding = True
 
-            error(f"Encoding error encountered in {self.filerange.filename}:")
-            error(f"{err!s}")
-            raise DecodeException
+            elif err.reason == "invalid start byte":
+                verbose("Invalid unicode sequence detected")
+                self.set_encoding("latin-1")
+                do_retry_decoding = True
+
+            else:
+                error(f"Encoding error encountered in {self.filerange.filename}:")
+                error(f"{err!s}")
+                debug(f"Unicode Error: {err!r}")
+                raise DecodeException
+
+        finally:
+            file.close()
+            if do_retry_decoding:
+                debug(f"Next encoding: {self.encoding!r}")
+                self.read_file()
 
         verbose(f"{self.filerange.filename} read with {self.encoding}"\
                 " encoding")
