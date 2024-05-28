@@ -297,4 +297,3 @@ class CommandLine:
                 return
 
         return parsed_args
-
