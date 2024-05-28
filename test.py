@@ -5,6 +5,7 @@ sys.path.append("./src/")
 
 from argparser import SUBCMD_INPUT_SINGLE, CommandLineArgumentError,\
         CommandParser, FlagGroup, Subcommand, Flag, ARG_ENABLE
+from cli import parse_cli, CommandLineError, CommandLine
 from logger import LEVEL_DEBUG
 from srt import DecodeException, SRTDecoder
 from stime import Time
@@ -251,6 +252,169 @@ class CommandLineTestCase(unittest.TestCase):
             self.fail()
         self.assertIn("verbosity", args)
         self.assertEqual(args["verbosity"], LEVEL_DEBUG)
+
+class CommandLineTestCase_2(unittest.TestCase):
+    def test_positional_arguments(self):
+        test_args: list[str] = ["zero", "one", "two", "three"]
+        try:
+            args = parse_cli(test_args)
+        except CommandLineError as err:
+            self.fail(err)
+
+        self.assertIsInstance(args, CommandLine)
+
+        # assert positionals set correctly
+        self.assertEqual(len(args.positional_arguments), len(test_args))
+        for arg, test_arg in zip(args.positional_arguments, test_args):
+            self.assertEqual(arg, test_arg, f"({test_arg} -> {arg})")
+
+        # assert no other field set
+        self.assertEqual(len(args.named_arguments.values()), 0)
+        self.assertEqual(len(args.flags.values()), 0)
+
+    def do_list_test(self, test_args: list[str]) -> None:
+        try:
+            args = parse_cli(test_args)
+        except CommandLineError as err:
+            self.fail(err)
+
+        self.assertIsInstance(args, CommandLine)
+
+        # assert flags set correctly
+        for test_flag in test_args:
+            flag = args.flags.get(test_flag)
+            self.assertIsNotNone(flag, f"({test_flag})")
+            self.assertTrue(flag, f"({test_flag})")
+
+        # assert not other field set
+        self.assertEqual(len(args.positional_arguments), 0)
+        self.assertEqual(len(args.named_arguments.values()), 0)
+
+    def test_flag_argument(self):
+        test_args: list[str] = ["--no-list", "--quiet", "--empty"]
+        self.do_list_test(test_args)
+
+    def test_named_argument(self):
+        test_args_dict: dict[str, str] = {
+                "--value-0": "zero",
+                "--value-1": "one",
+                "--value-2": "two" }
+
+        test_args: list[str] = []
+        for key, value in test_args_dict.items():
+            test_args.append(key)
+            test_args.append(value)
+
+        try:
+            args = parse_cli(test_args)
+        except CommandLineError as err:
+            self.fail(err)
+
+        self.assertIsInstance(args, CommandLine)
+
+        # assert named arguments set correctly
+        for key, values in args.named_arguments.items():
+            self.assertIn(key, test_args_dict.keys(), f"({key})")
+            test_value = test_args_dict.get(key)
+            self.assertEqual(len(values), 1, f"({key})")
+            self.assertEqual(values[0], test_value, f"({key})")
+
+        # assert no other fields set
+        self.assertEqual(len(args.positional_arguments), 0)
+        self.assertEqual(len(args.flags.values()), 0)
+
+    def test_multiple_arguments(self):
+        test_args_dict: dict[str, tuple[tuple[str, ...], str]] = {
+                "--one": (("one", "two", "three"), ":,"),
+                "--two": (("one", "two"), ":;"),
+                "--three": (("a", "b"), "=,"),
+                "--four": (("one", "two", "three"), "=;")}
+
+        test_args: list[str] = [
+                "{}{}{}".format(
+                    key,
+                    value[1][0],
+                    "{}".format(value[1][1]).join(value[0]))
+                for key, value in test_args_dict.items()]
+
+        try:
+            args = parse_cli(test_args)
+        except CommandLineError as err:
+            self.fail(err)
+
+        self.assertIsInstance(args, CommandLine)
+
+        # assert named arguments set correctly
+        for test_name, test_data in test_args_dict.items():
+            test_values, _ = test_data
+            self.assertIn(test_name, args.named_arguments)
+            values = args.named_arguments[test_name]
+            self.assertSequenceEqual(test_values, values, f"({test_name})")
+
+        # assert no other field set
+        self.assertEqual(len(args.positional_arguments), 0)
+        self.assertEqual(len(args.flags.values()), 0)
+
+    def test_mismatched_list_separators(self):
+        test_args: list[str] = ["--list:a,b;c"]
+        with self.assertRaises(CommandLineError):
+            parse_cli(test_args)
+
+    def test_shorthand_flag(self):
+        test_args: list[str] = ["-u", "-a", "-b", "-F"]
+        self.do_list_test(test_args)
+
+    def test_shorthand_argument_explicit_value(self):
+        test_name = "-C"
+        test_value = "hello"
+        test_args: list[str] = [f"{test_name}{test_value}"]
+        try:
+            args = parse_cli(test_args)
+        except CommandLineError as err:
+            self.fail(err)
+
+        self.assertIsInstance(args, CommandLine)
+
+        # assert named argument is set correctly
+        self.assertIn(test_name, args.named_arguments)
+        value = args.named_arguments[test_name][0]
+        self.assertEqual(value, test_value)
+
+        # assert no other field is set
+        self.assertEqual(len(args.positional_arguments), 0)
+        self.assertEqual(len(args.flags.values()), 0)
+
+    def test_shorthand_argument_list(self):
+        test_args_dict: dict[str, tuple[tuple[str, ...], str]] = {
+                "-o": (("one", "two", "three"), ":,"),
+                "-t": (("one", "two"), ":;"),
+                "-x": (("a", "b"), "=,"),
+                "-f": (("one", "two", "three"), "=;")}
+
+        test_args: list[str] = [
+                "{}{}{}".format(
+                    key,
+                    value[1][0],
+                    "{}".format(value[1][1]).join(value[0]))
+                for key, value in test_args_dict.items()]
+
+        try:
+            args = parse_cli(test_args)
+        except CommandLineError as err:
+            self.fail(err)
+
+        self.assertIsInstance(args, CommandLine)
+
+        # assert named arguments set correctly
+        for test_name, test_data in test_args_dict.items():
+            test_values, _ = test_data
+            self.assertIn(test_name, args.named_arguments)
+            values = args.named_arguments[test_name]
+            self.assertSequenceEqual(test_values, values, f"({test_name})")
+
+        # assert no other field set
+        self.assertEqual(len(args.positional_arguments), 0)
+        self.assertEqual(len(args.flags.values()), 0)
 
 if __name__ == "__main__":
     unittest.main()
