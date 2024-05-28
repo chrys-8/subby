@@ -1,18 +1,19 @@
 import argparse
+from typing import Any
 
+from argparser import ARG_ENABLE, SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Flag, Subcommand
 from logger import error, info
 import stime
 from srt import SRTDecoder, DecodeException
-from argparser import Subcommand, SUBCMD_OUTPUT, SubcommandArgument,\
-        ARG_ENABLE, SUBCMD_INPUT_SINGLE
+#from argparser import Subcommand, SUBCMD_OUTPUT, Flag, ARG_ENABLE, SUBCMD_INPUT_SINGLE
 from subcommand.common import filerange_filter_function, save_subtitle_file
 
-def delay(args: argparse.Namespace) -> None:
+def delay(args: dict[str, Any]) -> None:
     '''Implement delay for subtitle range'''
 
     try:
-        info(f"Reading '{args.input.filename}'")
-        srtfile = SRTDecoder(args.input).decode()
+        info(f"Reading '{args['input'].filename}'")
+        srtfile = SRTDecoder(args["input"]).decode()
     except DecodeException:
         error("Could not decode file")
         return
@@ -21,14 +22,14 @@ def delay(args: argparse.Namespace) -> None:
 
     # final delay in milliseconds
     delay: int
-    if args.unit == "minute":
-        delay = args.delay * stime.MINUTES
+    if args["unit"] == "minute":
+        delay = args["delay"] * stime.MINUTES
 
-    elif args.unit in ("second", "s"):
-        delay = args.delay * stime.SECONDS
+    elif args["unit"] in ("second", "s"):
+        delay = args["delay"] * stime.SECONDS
 
     else:
-        delay = args.delay
+        delay = args["delay"]
 
     filter_fn = filerange_filter_function(srtfile.filerange)
 
@@ -47,7 +48,7 @@ def delay(args: argparse.Namespace) -> None:
     info(f"Modified {counter} of {len(srtfile.sublines)} lines")
 
     # exclusive flags
-    if args.exclusive:
+    if args["exclusive"]:
         trimmed_sublines = [
                 line
                 for line, mask in zip(srtfile.sublines, exclusive_mask)
@@ -63,18 +64,18 @@ subcommand_delay = Subcommand(
         helpstring = "Delay a range of subtitles by a specified amount",
         args = [
             SUBCMD_OUTPUT,
-            SubcommandArgument(
-                name = "-u",
+            Flag(
+                name = "-unit",
                 helpstring = "Specify unit of delay (default: millisecond)",
-                long_name = "--unit",
+                shorthand = "-u",
                 choices = ("millisecond", "second", "minute", "ms", "s")),
-            SubcommandArgument(
-                name = "-x",
+            Flag(
+                name = "-exclusive",
                 helpstring = "Encode only the specified range",
-                long_name = "--exclusive",
+                shorthand = "-x",
                 type = ARG_ENABLE),
             SUBCMD_INPUT_SINGLE,
-            SubcommandArgument(
+            Flag(
                 name = "delay",
                 helpstring = "Amount of units (see -u) to delay by",
                 display_name = "delay_by",

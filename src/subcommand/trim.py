@@ -1,27 +1,28 @@
 import argparse
+from typing import Any
 
-from argparser import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Subcommand, \
-        SubcommandArgument, ARG_OPTIONAL
+#from argparser import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Subcommand, SubcommandArgument, ARG_OPTIONAL
+from argparser import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Flag, Subcommand
 from filerange import FileRange, filerange
 from logger import error, info
 from srt import SRTDecoder, DecodeException
 from subcommand.common import save_subtitle_file, filerange_filter_function
 
-def trim(args: argparse.Namespace) -> None:
+def trim(args: dict[str, Any]) -> None:
     '''Implement trim subcommand for subtitle range'''
-    range_provided, input_range = args.range
+    range_provided, input_range = args["range"]
     input_: FileRange
     if range_provided:
         # TODO nicer representation of range
         info(f"Using provided range: {input_range!s}")
         input_ = input_range
-        input_.filename = args.input.filename
+        input_.filename = args["input"].filename
 
     else:
-        input_ = args.input
+        input_ = args["input"]
 
     try:
-        info(f"Reading '{args.input.filename}'")
+        info(f"Reading '{args['input'].filename}'")
         srtfile = SRTDecoder(input_).decode()
     except DecodeException:
         error("Could not decode file")
@@ -33,18 +34,18 @@ def trim(args: argparse.Namespace) -> None:
     srtfile.sublines = list(trimmed_sublines)
     save_subtitle_file(srtfile, args)
 
-def parse_range(args: argparse.Namespace) -> None:
+def parse_range(args: dict[str, Any]) -> None:
     '''Post processing to yield file range'''
     provided: bool
     input_str: str
-    provided, input_str = args.range
+    provided, input_str = args["range"]
     input_range = filerange(input_str)
-    args.range = (provided, input_range)
+    args["range"] = (provided, input_range)
 
-def validate_no_range_conflict(args: argparse.Namespace) -> bool:
+def validate_no_range_conflict(args: dict[str, Any]) -> bool:
     '''Check whether conflicting flags have been set'''
-    provided, _ = args.range
-    if provided and args.use_ranges:
+    provided, _ = args["range"]
+    if provided and args["use-ranges"]:
         error("Cannot have conflicting ranges")
         return False
 
@@ -61,10 +62,9 @@ subcommand_trim = Subcommand(
         args = [
             SUBCMD_OUTPUT,
             SUBCMD_INPUT_SINGLE,
-            SubcommandArgument(
+            Flag(
                 name = "range",
                 helpstring = "A range of lines or timestamps",
-                type = ARG_OPTIONAL,
                 value_type = option_range,
                 default = (False, "start-end"))
             ],

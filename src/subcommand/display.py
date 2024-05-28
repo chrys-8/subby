@@ -1,9 +1,8 @@
-import argparse
+from typing import Any
 
+from argparser import ARG_ENABLE, SUBCMD_INPUT_MANY, Flag, Subcommand
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
-from argparser import SUBCMD_INPUT_MANY, Subcommand, SubcommandArgument, \
-        ARG_ENABLE
 from logger import debug, warn, error, info
 
 def dbg1_decode_utf8_only(filerange: FileRange) -> tuple[SRTDecoder, SRTFile]:
@@ -26,17 +25,17 @@ def dbg1_decode_utf8_only(filerange: FileRange) -> tuple[SRTDecoder, SRTFile]:
     subs = decoder.decode()
     return decoder, subs
 
-def display_one(filerange: FileRange, args: argparse.Namespace) -> None:
+def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
     '''Implement display subcommand'''
 
     if filerange.linerange is not None or filerange.timerange is not None:
         warn(f"Ignoring provided range for {filerange.filename}...")
 
     # TODO change to verbose
-    useLongInfo: bool = args.long
+    useLongInfo: bool = args["long"]
 
     try:
-        if args.dbg1:
+        if args["dbg1"]:
             decoder, srtfile = dbg1_decode_utf8_only(filerange)
 
         else:
@@ -87,17 +86,17 @@ def display_one(filerange: FileRange, args: argparse.Namespace) -> None:
     if not hasIssues:
         info("\tno issues")
 
-    if args.missing:
+    if args["missing"]:
         warn("Utility for determining missing line numbers not yet" \
                 " implemented")
 
-def display(args: argparse.Namespace) -> None:
+def display(args: dict[str, Any]) -> None:
     '''Implement display subcommand for multiple files'''
-    input_count = len(args.input)
+    input_count = len(args["input"])
     if input_count > 1:
         info(f"Displaying information for {input_count} files")
 
-    for filerange in args.input:
+    for filerange in args["input"]:
         display_one(filerange, args)
         info("")
 
@@ -106,16 +105,16 @@ subcommand_display = Subcommand(
         function = display,
         helpstring = "Display information about subtitle file",
         args = [
-            SubcommandArgument(
-                name = "--long",
+            Flag(
+                name = "-long",
                 helpstring = "Display detailed information",
                 type = ARG_ENABLE),
-            SubcommandArgument(
-                name = "--missing",
+            Flag(
+                name = "-missing",
                 helpstring = "Not implemented",
                 type = ARG_ENABLE),
-            SubcommandArgument(
-                name = "--dbg1",
+            Flag(
+                name = "-dbg1",
                 helpstring = "",
                 type = ARG_ENABLE
                 ),
