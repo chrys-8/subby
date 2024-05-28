@@ -1,5 +1,6 @@
+import argparse
 import codecs
-from typing import Callable, Any
+from typing import Any, Callable
 from os.path import exists
 
 from cli import ARG_ENABLE, ARG_MULTIPLE, MutuallyExclusiveGroup, Parameter, ParameterGroup

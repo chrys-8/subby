@@ -1,5 +1,6 @@
 from typing import Any
 
+from argparser import ARG_ENABLE, SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Flag, Subcommand
 from logger import error, info
 import stime
 from srt import SRTDecoder, DecodeException
@@ -61,20 +62,20 @@ subcommand_delay = Command(
         name = "delay",
         function = delay,
         helpstring = "Delay a range of subtitles by a specified amount",
-        parameters = [
-            srt_file_output_params(),
-            Parameter(
-                name = "-u",
+        args = [
+            SUBCMD_OUTPUT,
+            Flag(
+                name = "-unit",
                 helpstring = "Specify unit of delay (default: millisecond)",
-                long_name = "--unit",
+                shorthand = "-u",
                 choices = ("millisecond", "second", "minute", "ms", "s")),
-            Parameter(
-                name = "-x",
+            Flag(
+                name = "-exclusive",
                 helpstring = "Encode only the specified range",
-                long_name = "--exclusive",
+                shorthand = "-x",
                 type = ARG_ENABLE),
-            single_srt_file_input_params(),
-            Parameter(
+            SUBCMD_INPUT_SINGLE,
+            Flag(
                 name = "delay",
                 helpstring = "Amount of units (see -u) to delay by",
                 display_name = "delay_by",

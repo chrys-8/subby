@@ -47,7 +47,7 @@ def parse_range(args: dict[str, Any]) -> None:
 def validate_no_range_conflict(args: dict[str, Any]) -> bool:
     '''Check whether conflicting flags have been set'''
     provided, _ = args["range"]
-    if provided and args["use_ranges"]:
+    if provided and args["use_ranges"]: # TODO may not work
         error("Cannot have conflicting ranges")
         return False
 
@@ -61,13 +61,12 @@ subcommand_trim = Command(
         name = "trim",
         function = trim,
         helpstring = "Trim to specified range of lines or timestamps",
-        parameters = [
-            srt_file_output_params(),
-            single_srt_file_input_params(),
-            Parameter(
+        args = [
+            SUBCMD_OUTPUT,
+            SUBCMD_INPUT_SINGLE,
+            Flag(
                 name = "range",
                 helpstring = "A range of lines or timestamps",
-                type = ARG_OPTIONAL,
                 value_type = option_range,
                 default = (False, "start-end"))
             ],

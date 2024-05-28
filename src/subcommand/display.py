@@ -1,5 +1,6 @@
 from typing import Any
 
+from argparser import ARG_ENABLE, SUBCMD_INPUT_MANY, Flag, Subcommand
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
 from cli import Command, Parameter, ARG_ENABLE
@@ -97,7 +98,7 @@ subcommand_display = Command(
         function = display,
         helpstring = "Display information about subtitle file",
         parameters = [
-            Parameter(
+            Flag(
                 name = "--dbg1",
                 helpstring = "",
                 type = ARG_ENABLE

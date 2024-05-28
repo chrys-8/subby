@@ -34,7 +34,8 @@ def main() -> None:
 
     for subcommand in config:
         if args["subcmd"] == subcommand.name:
-            subcommand.function(args)
+            if subcommand.function is not None:
+                subcommand.function(args)
 
 if __name__ == "__main__":
     main()
