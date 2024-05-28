@@ -254,6 +254,7 @@ class CommandLineTestCase(unittest.TestCase):
         self.assertEqual(args["verbosity"], LEVEL_DEBUG)
 
 class CommandLineTestCase_2(unittest.TestCase):
+
     def test_positional_arguments(self):
         test_args: list[str] = ["zero", "one", "two", "three"]
         try:
@@ -272,7 +273,7 @@ class CommandLineTestCase_2(unittest.TestCase):
         self.assertEqual(len(args.named_arguments.values()), 0)
         self.assertEqual(len(args.flags.values()), 0)
 
-    def do_list_test(self, test_args: list[str]) -> None:
+    def do_flag_list_test(self, test_args: list[str]) -> None:
         try:
             args = parse_cli(test_args)
         except CommandLineError as err:
@@ -292,7 +293,7 @@ class CommandLineTestCase_2(unittest.TestCase):
 
     def test_flag_argument(self):
         test_args: list[str] = ["--no-list", "--quiet", "--empty"]
-        self.do_list_test(test_args)
+        self.do_flag_list_test(test_args)
 
     def test_named_argument(self):
         test_args_dict: dict[str, str] = {
@@ -362,7 +363,7 @@ class CommandLineTestCase_2(unittest.TestCase):
 
     def test_shorthand_flag(self):
         test_args: list[str] = ["-u", "-a", "-b", "-F"]
-        self.do_list_test(test_args)
+        self.do_flag_list_test(test_args)
 
     def test_shorthand_argument_explicit_value(self):
         test_name = "-C"
