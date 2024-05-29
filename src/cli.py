@@ -6,9 +6,9 @@ from filerange import FileRange, filerange
 from logger import LEVEL_INFO, LEVEL_QUIET, LEVEL_VERBOSE, LogFormatter,\
         LogFlags, error, warn, LEVEL_DEBUG
 
-def validate_input_filetype(args: argparse.Namespace) -> bool:
+def validate_input_filetype(args: dict[str, Any]) -> bool:
     '''Validate `args.input`; return false to stop execution'''
-    filename: str = args.input.filename
+    filename: str = args["input"].filename
     if not filename.endswith(".srt"):
         error(f"'{filename}' is not an srt file")
         if ':' in filename:
@@ -17,9 +17,9 @@ def validate_input_filetype(args: argparse.Namespace) -> bool:
 
     return True
 
-def validate_many_input_filetypes(args: argparse.Namespace) -> bool:
+def validate_many_input_filetypes(args: dict[str, Any]) -> bool:
     '''Validate srt filetypes in `args.input`; false if invalid'''
-    for filerange_ in args.input:
+    for filerange_ in args["input"]:
         if not filerange_.filename.endswith(".srt"):
             error(f"'{filerange_.filename} is not an srt file")
             if ':' in filerange_.filename:
@@ -29,44 +29,44 @@ def validate_many_input_filetypes(args: argparse.Namespace) -> bool:
 
     return True
 
-def parse_promised_filerange(args: argparse.Namespace) -> None:
+def parse_promised_filerange(args: dict[str, Any]) -> None:
     '''Parse file input to FileRange depending on conditions'''
-    if args.use_ranges:
-        args.input = filerange(args.input)
+    if args["use_ranges"]:
+        args["input"] = filerange(args["input"])
 
     else:
-        args.input = FileRange(args.input, None, None)
+        args["input"] = FileRange(args["input"], None, None)
 
-def parse_many_promised_fileranges(args: argparse.Namespace) -> None:
+def parse_many_promised_fileranges(args: dict[str, Any]) -> None:
     '''Parse file input to FileRange conditionally for many inputs'''
     parse_fn: Callable[[str], FileRange]
-    if args.use_ranges:
+    if args["use_ranges"]:
         parse_fn = lambda input_: filerange(input_)
 
     else:
         parse_fn = lambda input_: FileRange(input_, None, None)
 
-    args.input = [parse_fn(value) for value in args.input]
+    args["input"] = [parse_fn(value) for value in args["input"]]
 
-def parse_logging_level(args: argparse.Namespace) -> None:
+def parse_logging_level(args: dict[str, Any]) -> None:
     '''Determine logging level from flag presence'''
-    if args.quiet:
-        args.verbosity = LEVEL_QUIET
+    if args["quiet"]:
+        args["verbosity"] = LEVEL_QUIET
         return
 
-    if args.debug:
-        args.verbosity = LEVEL_DEBUG
+    if args["debug"]:
+        args["verbosity"] = LEVEL_DEBUG
         return
 
-    if args.verbose:
-        args.verbosity = LEVEL_VERBOSE
+    if args["verbose"]:
+        args["verbosity"] = LEVEL_VERBOSE
         return
 
-    args.verbosity = LEVEL_INFO
+    args["verbosity"] = LEVEL_INFO
     return
 
-ValidatorType = Callable[[argparse.Namespace], bool]
-ProcessorType = Callable[[argparse.Namespace], None]
+ValidatorType = Callable[[dict[str, Any]], bool]
+ProcessorType = Callable[[dict[str, Any]], None]
 
 ARG_VALUE    = "value"
 ARG_ENABLE   = "enable"
@@ -127,7 +127,7 @@ class Subcommand:
     '''Schema for representing subcommands'''
     name: str
     helpstring: str
-    function: Callable[[argparse.Namespace], None]
+    function: Callable[[dict[str, Any]], None]
     args: list[SubcommandArgument | Literal["input_single", "input_many",\
             "output"]] | None = None
     validators: list[ValidatorType] | None = None
@@ -149,16 +149,17 @@ class Subparser:
         '''Add post_processor to parser'''
         self._post_processors.append(post_processor)
 
-    def parse_args(self) -> argparse.Namespace:
+    def parse_args(self) -> dict[str, Any]:
         '''Yield arguments from command line parsing'''
-        return self.parser.parse_args()
+        args = self.parser.parse_args()
+        return args.__dict__
 
-    def run_post_processors(self, args: argparse.Namespace) -> None:
+    def run_post_processors(self, args: dict[str, Any]) -> None:
         '''Perform post processing on arguments'''
         for post_processor in self._post_processors:
             post_processor(args)
 
-    def run_validators(self, args: argparse.Namespace) -> bool:
+    def run_validators(self, args: dict[str, Any]) -> bool:
         '''Run validation checks on arguments, false if any fail'''
         for validator in self._validators:
             if not validator(args):
@@ -314,19 +315,19 @@ class CommandParser:
                 help = "Flag to specify overwriting the input file;" \
                         " conflicts with -o")
 
-    def parse_args(self) -> argparse.Namespace | None:
+    def parse_args(self) -> dict[str, Any] | None:
         '''Parse CLI with post-processing and validators'''
         args = self._subparser.parse_args()
         self._subparser.run_post_processors(args)
 
-        log_flags = LogFlags(name = PROG_NAME, verbosity = args.verbosity)
-        args.log_formatter = LogFormatter(log_flags)
-        args.log_formatter.set_as_global_logger()
+        log_flags = LogFlags(name = PROG_NAME, verbosity = args["verbosity"])
+        args["log_formatter"] = LogFormatter(log_flags)
+        args["log_formatter"].set_as_global_logger()
 
         if not self._subparser.run_validators(args):
             return
 
-        subcmd_subparser = self._subcommands.get(args.subcmd)
+        subcmd_subparser = self._subcommands.get(args["subcmd"])
         if subcmd_subparser is not None:
             subcmd_subparser.run_post_processors(args)
             if not subcmd_subparser.run_validators(args):

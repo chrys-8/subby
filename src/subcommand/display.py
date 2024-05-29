@@ -1,8 +1,8 @@
-import argparse
+from typing import Any
 
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
-from argparser import SUBCMD_INPUT_MANY, Subcommand, SubcommandArgument, \
+from cli import SUBCMD_INPUT_MANY, Subcommand, SubcommandArgument, \
         ARG_ENABLE
 from logger import debug, warn, error, info
 
@@ -26,17 +26,17 @@ def dbg1_decode_utf8_only(filerange: FileRange) -> tuple[SRTDecoder, SRTFile]:
     subs = decoder.decode()
     return decoder, subs
 
-def display_one(filerange: FileRange, args: argparse.Namespace) -> None:
+def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
     '''Implement display subcommand'''
 
     if filerange.linerange is not None or filerange.timerange is not None:
         warn(f"Ignoring provided range for {filerange.filename}...")
 
     # TODO change to verbose
-    useLongInfo: bool = args.long
+    useLongInfo: bool = args["long"]
 
     try:
-        if args.dbg1:
+        if args["dbg1"]:
             decoder, srtfile = dbg1_decode_utf8_only(filerange)
 
         else:
@@ -87,17 +87,17 @@ def display_one(filerange: FileRange, args: argparse.Namespace) -> None:
     if not hasIssues:
         info("\tno issues")
 
-    if args.missing:
+    if args["missing"]:
         warn("Utility for determining missing line numbers not yet" \
                 " implemented")
 
-def display(args: argparse.Namespace) -> None:
+def display(args: dict[str, Any]) -> None:
     '''Implement display subcommand for multiple files'''
-    input_count = len(args.input)
+    input_count = len(args["input"])
     if input_count > 1:
         info(f"Displaying information for {input_count} files")
 
-    for filerange in args.input:
+    for filerange in args["input"]:
         display_one(filerange, args)
         info("")
 

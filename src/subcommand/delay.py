@@ -1,18 +1,18 @@
-import argparse
+from typing import Any
 
 from logger import error, info
 import stime
 from srt import SRTDecoder, DecodeException
-from argparser import Subcommand, SUBCMD_OUTPUT, SubcommandArgument,\
+from cli import Subcommand, SUBCMD_OUTPUT, SubcommandArgument,\
         ARG_ENABLE, SUBCMD_INPUT_SINGLE
 from subcommand.common import filerange_filter_function, save_subtitle_file
 
-def delay(args: argparse.Namespace) -> None:
+def delay(args: dict[str, Any]) -> None:
     '''Implement delay for subtitle range'''
 
     try:
-        info(f"Reading '{args.input.filename}'")
-        srtfile = SRTDecoder(args.input).decode()
+        info(f"Reading '{args['input'].filename}'")
+        srtfile = SRTDecoder(args["input"]).decode()
     except DecodeException:
         error("Could not decode file")
         return
@@ -21,14 +21,14 @@ def delay(args: argparse.Namespace) -> None:
 
     # final delay in milliseconds
     delay: int
-    if args.unit == "minute":
-        delay = args.delay * stime.MINUTES
+    if args["unit"] == "minute":
+        delay = args["delay"] * stime.MINUTES
 
-    elif args.unit in ("second", "s"):
-        delay = args.delay * stime.SECONDS
+    elif args["unit"] in ("second", "s"):
+        delay = args["delay"] * stime.SECONDS
 
     else:
-        delay = args.delay
+        delay = args["delay"]
 
     filter_fn = filerange_filter_function(srtfile.filerange)
 
@@ -47,7 +47,7 @@ def delay(args: argparse.Namespace) -> None:
     info(f"Modified {counter} of {len(srtfile.sublines)} lines")
 
     # exclusive flags
-    if args.exclusive:
+    if args["exclusive"]:
         trimmed_sublines = [
                 line
                 for line, mask in zip(srtfile.sublines, exclusive_mask)
