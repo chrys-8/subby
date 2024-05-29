@@ -1,5 +1,4 @@
-import argparse
-from typing import Callable
+from typing import Callable, Any
 
 from filerange import FileRange
 from logger import error, info
@@ -37,17 +36,17 @@ def filerange_filter_function(filerange: FileRange) \
     else:
         return lambda _: True
 
-def save_subtitle_file(file: SRTFile, args: argparse.Namespace) -> None:
+def save_subtitle_file(file: SRTFile, args: dict[str, Any]) -> None:
     '''Save subtitle file to specified filename'''
     write_success: bool
     filename: str
-    if args.overwrite:
+    if args["overwrite"]:
         filename = file.filerange.filename
         info(f"Overwriting '{filename}' with {len(file.sublines)} lines")
         write_success = file.save_to_file()
 
     else:
-        filename = args.output
+        filename = args["output"]
         info(f"Writing {len(file.sublines)} lines to '{filename}'")
         write_success = file.write_to_file(filename)
 
