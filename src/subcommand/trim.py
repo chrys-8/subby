@@ -1,11 +1,13 @@
 from typing import Any
 
-from cli import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Subcommand, \
-        SubcommandArgument, ARG_OPTIONAL
+from cli import Subcommand, SubcommandArgument, ARG_OPTIONAL
 from filerange import FileRange, filerange
 from logger import error, info
 from srt import SRTDecoder, DecodeException
-from subcommand.common import save_subtitle_file, filerange_filter_function
+from subcommand.common import save_subtitle_file, filerange_filter_function,\
+        single_srt_file_input_params, srt_file_output_params
+
+# TODO fix line numbering of trimmed srt files
 
 def trim(args: dict[str, Any]) -> None:
     '''Implement trim subcommand for subtitle range'''
@@ -59,8 +61,8 @@ subcommand_trim = Subcommand(
         function = trim,
         helpstring = "Trim to specified range of lines or timestamps",
         args = [
-            SUBCMD_OUTPUT,
-            SUBCMD_INPUT_SINGLE,
+            srt_file_output_params(),
+            single_srt_file_input_params(),
             SubcommandArgument(
                 name = "range",
                 helpstring = "A range of lines or timestamps",

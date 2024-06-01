@@ -2,9 +2,9 @@ from typing import Any
 
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
-from cli import SUBCMD_INPUT_MANY, Subcommand, SubcommandArgument, \
-        ARG_ENABLE
+from cli import Subcommand, SubcommandArgument, ARG_ENABLE
 from logger import debug, warn, error, info, verbose
+from subcommand.common import multiple_srt_file_input_params
 
 def dbg1_decode_utf8_only(filerange: FileRange) -> tuple[SRTDecoder, SRTFile]:
     """Debug UTF8 decoding"""
@@ -102,6 +102,6 @@ subcommand_display = Subcommand(
                 helpstring = "",
                 type = ARG_ENABLE
                 ),
-            SUBCMD_INPUT_MANY
+            multiple_srt_file_input_params()
             ]
         )
