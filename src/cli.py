@@ -6,6 +6,8 @@ from filerange import FileRange, filerange
 from logger import LEVEL_INFO, LEVEL_QUIET, LEVEL_VERBOSE, LogFormatter,\
         LogFlags, error, warn, LEVEL_DEBUG
 
+# TODO consider moving filetype-specific validators and logging post-processors
+
 def validate_input_filetype(args: dict[str, Any]) -> bool:
     '''Validate `args.input`; return false to stop execution'''
     filename: str = args["input"].filename
@@ -118,6 +120,9 @@ class SubcommandArgument:
 
         return tuple(names), options
 
+# TODO change to functions
+#   function return the correct flags required
+#   then remove string checking in Subcommand and CommandParser
 SUBCMD_INPUT_SINGLE = "input_single"
 SUBCMD_INPUT_MANY   = "input_many"
 SUBCMD_OUTPUT       = "output"
@@ -167,6 +172,7 @@ class Subparser:
 
         return True
 
+# TODO move
 PROG_NAME = "subby"
 
 class CommandParser:
@@ -320,6 +326,7 @@ class CommandParser:
         args = self._subparser.parse_args()
         self._subparser.run_post_processors(args)
 
+        # TODO change to post-processor
         log_flags = LogFlags(name = PROG_NAME, verbosity = args["verbosity"])
         args["log_formatter"] = LogFormatter(log_flags)
         args["log_formatter"].set_as_global_logger()

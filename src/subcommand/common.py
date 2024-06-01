@@ -1,7 +1,7 @@
 from typing import Callable, Any
 
 from filerange import FileRange
-from logger import error, info
+from logger import LogFormatter, error, info
 from srt import SRTFile
 from subtitles import SubtitleLine
 import stime
@@ -50,8 +50,17 @@ def save_subtitle_file(file: SRTFile, args: dict[str, Any]) -> None:
         info(f"Writing {len(file.sublines)} lines to '{filename}'")
         write_success = file.write_to_file(filename)
 
-    if write_success:
-        # TODO green success
+    use_term_colors: bool = False
+    log_formatter: LogFormatter | None = args.get("log_formatter")
+    if log_formatter is not None:
+        use_term_colors = log_formatter.flags.use_term_colors
+
+    if write_success and use_term_colors:
+        prefix = term.term_color_fg("green")
+        postfix = term.term_color_fg("default")
+        info(f"{prefix}Finished!{postfix}")
+
+    elif write_success:
         info("Finished!")
 
     else:
