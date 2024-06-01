@@ -2,50 +2,12 @@ import argparse
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Sequence
 
-from filerange import FileRange, filerange
-from logger import error, warn, parse_logging_level
+from logger import parse_logging_level
 
-def validate_input_filetype(args: dict[str, Any]) -> bool:
-    '''Validate `args.input`; return false to stop execution'''
-    filename: str = args["input"].filename
-    if not filename.endswith(".srt"):
-        error(f"'{filename}' is not an srt file")
-        if ':' in filename:
-            warn("If you specified a range, use -R to enable range parsing")
-        return False
-
-    return True
-
-def validate_many_input_filetypes(args: dict[str, Any]) -> bool:
-    '''Validate srt filetypes in `args.input`; false if invalid'''
-    for filerange_ in args["input"]:
-        if not filerange_.filename.endswith(".srt"):
-            error(f"'{filerange_.filename} is not an srt file")
-            if ':' in filerange_.filename:
-                warn("If you specified a range, use -R to enable" \
-                        " range parsing")
-            return False
-
-    return True
-
-def parse_promised_filerange(args: dict[str, Any]) -> None:
-    '''Parse file input to FileRange depending on conditions'''
-    if args["use_ranges"]:
-        args["input"] = filerange(args["input"])
-
-    else:
-        args["input"] = FileRange(args["input"], None, None)
-
-def parse_many_promised_fileranges(args: dict[str, Any]) -> None:
-    '''Parse file input to FileRange conditionally for many inputs'''
-    parse_fn: Callable[[str], FileRange]
-    if args["use_ranges"]:
-        parse_fn = lambda input_: filerange(input_)
-
-    else:
-        parse_fn = lambda input_: FileRange(input_, None, None)
-
-    args["input"] = [parse_fn(value) for value in args["input"]]
+# TODO rename EVERYTHING
+#   too much ambiguity between subcommand arguments/subcommand parameters
+#   weird class names: e.g. Subparser wraps argparse.ArgumentParser, but can
+#   represent a parser at any level, not just subparser level
 
 ValidatorType = Callable[[dict[str, Any]], bool]
 ProcessorType = Callable[[dict[str, Any]], None]
@@ -260,6 +222,7 @@ class CommandParser:
 
     def add_print_flags(self) -> None:
         """Set flags for printing and logging levels"""
+        # TODO refactor to param group
         parser = self._subparser.parser
 
         parser.add_argument(
@@ -313,66 +276,6 @@ class CommandParser:
         if subcommand.post_processors is not None:
             for post_processor in subcommand.post_processors:
                 subparser.add_post_processor(post_processor)
-
-    def add_single_file_input(self, subcommand: str) -> None:
-        '''Add flags and validators for single file input'''
-
-        # TODO better help string for `input`
-        helpstring = "The input file"
-        use_ranges_help_string = "Enable parsing for ranges of lines or" \
-                " timestamps"
-
-        subparser = self._subcommands[subcommand]
-        parser = subparser.parser
-        validator = validate_input_filetype
-        post_processor = parse_promised_filerange
-
-        parser.add_argument("input", help = helpstring)
-        parser.add_argument("-R", "--use-ranges", action = "store_true", \
-                help = use_ranges_help_string)
-        subparser.add_validator(validator)
-        subparser.add_post_processor(post_processor)
-
-    def add_multiple_file_input(self, subcommand: str) -> None:
-        '''Add flags and validators for multiple file input'''
-
-        # TODO better help string for `input`
-        helpstring = "The input file"
-        use_ranges_help_string = "Enable parsing for ranges of lines or" \
-                " timestamps"
-
-        subparser = self._subcommands[subcommand]
-        parser = subparser.parser
-        validator = validate_many_input_filetypes
-        post_processor = parse_many_promised_fileranges
-
-        parser.add_argument("input", nargs = '+', help = helpstring)
-        parser.add_argument("-R", "--use-ranges", action = "store_true", \
-                help = use_ranges_help_string)
-        subparser.add_validator(validator)
-        subparser.add_post_processor(post_processor)
-
-    def add_file_output_flags_for_subcommand(self, subcommand: str) -> None:
-        '''Add flags and validators for file output processing for a
-        subcommand'''
-
-        subparser = self._subcommands[subcommand]
-        parser = subparser.parser
-        group = parser.add_mutually_exclusive_group(required = True)
-
-        group.add_argument(
-                "-o",
-                "--output",
-                metavar = "output",
-                nargs = "?",
-                help = "The output file")
-
-        group.add_argument(
-                "-O",
-                "--overwrite",
-                action = "store_true",
-                help = "Flag to specify overwriting the input file;" \
-                        " conflicts with -o")
 
     def parse_args(self) -> dict[str, Any] | None:
         '''Parse CLI with post-processing and validators'''
