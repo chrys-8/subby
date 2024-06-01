@@ -1,13 +1,9 @@
 import argparse
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, Sequence
+from enum import Enum, auto
+from typing import Any, Callable, Sequence
 
 from logger import parse_logging_level
-
-# TODO rename EVERYTHING
-#   too much ambiguity between subcommand arguments/subcommand parameters
-#   weird class names: e.g. Subparser wraps argparse.ArgumentParser, but can
-#   represent a parser at any level, not just subparser level
 
 ValidatorType = Callable[[dict[str, Any]], bool]
 ProcessorType = Callable[[dict[str, Any]], None]
@@ -20,21 +16,27 @@ def program_name_assigner(prog_name: str) -> ProcessorType:
 
     return assigner
 
-ARG_VALUE    = "value"
-ARG_ENABLE   = "enable"
-ARG_DISABLE  = "disable"
-ARG_OPTIONAL = "optional"
-ARG_MULTIPLE = "multiple"
+class ParameterType(Enum):
+    Value    = auto()
+    Enable   = auto()
+    Disable  = auto()
+    Optional = auto()
+    Multiple = auto()
+
+ARG_VALUE    = ParameterType.Value
+ARG_ENABLE   = ParameterType.Enable
+ARG_DISABLE  = ParameterType.Disable
+ARG_OPTIONAL = ParameterType.Optional
+ARG_MULTIPLE = ParameterType.Multiple
 
 @dataclass
-class SubcommandArgument:
+class Parameter:
     '''Schema for representing subcommand arguments'''
     name: str
     helpstring: str
     long_name: str | None = None
     display_name: str | None = None
-    type: Literal["value", "enable", "disable", "optional", "multiple"] =\
-            ARG_VALUE
+    type: ParameterType = ARG_VALUE
     choices: tuple[str, ...] | None = None
     value_type: Any = str
     default:Any = None
@@ -75,67 +77,77 @@ class SubcommandArgument:
 
         return tuple(names), options
 
-@dataclass
-class MutuallyExclusiveSubArgGroup:
-    '''Represents a group of subcommand arguments that are mutually
-    exclusive'''
-    arguments: list[SubcommandArgument]
-    required: bool = False
+SubcommandArgument = Parameter # TODO remove alias
 
 @dataclass
-class SubcommandArgumentGroup:
+class MutuallyExclusiveGroup:
+    '''Represents a group of subcommand arguments that are mutually
+    exclusive'''
+    arguments: list[Parameter] # TODO rename
+    required: bool = False
+
+MutuallyExclusiveSubArgGroup = MutuallyExclusiveGroup # TODO remove alias
+
+@dataclass
+class ParameterGroup:
     '''Schema for representing grouped subcommand arguments'''
-    arguments: list[SubcommandArgument | MutuallyExclusiveSubArgGroup]
+    arguments: list[Parameter | MutuallyExclusiveGroup] # TODO rename
     title: str | None = None
     description: str | None = None
     deferred_validators: list[ValidatorType] | None = None
     deferred_post_processers: list[ProcessorType] | None = None
 
+SubcommandArgumentGroup = ParameterGroup # TODO remove alias
+
 @dataclass
-class Subcommand:
+class Command:
     '''Schema for representing subcommands'''
     name: str
     helpstring: str
     function: Callable[[dict[str, Any]], None]
-    args: list[SubcommandArgument | MutuallyExclusiveSubArgGroup |
-               SubcommandArgumentGroup ] | None = None
+    args: list[Parameter | MutuallyExclusiveGroup |
+               ParameterGroup ] | None = None # TODO rename
     validators: list[ValidatorType] | None = None
     post_processors: list[ProcessorType] | None = None
+
+Subcommand = Command # TODO remove alias
 
 ParserLike = argparse.ArgumentParser | argparse._ArgumentGroup | \
         argparse._MutuallyExclusiveGroup
 
 def add_params_to_parserlike(
-        params: Sequence[SubcommandArgument] | SubcommandArgument,
+        params: Sequence[Parameter] | Parameter,
         parser: ParserLike) -> None:
     '''Add many parameters to a parserlike object'''
-    if isinstance(params, SubcommandArgument):
+    if isinstance(params, Parameter):
         params = (params,)
 
     for param in params:
-        args, kwargs = param.params()
-        parser.add_argument(*args, **kwargs)
+        parser_args, parser_kwargs = param.params()
+        parser.add_argument(*parser_args, **parser_kwargs)
 
-class Subparser:
+class Parser:
     '''Wrap ArgumentParser with validators and post processors'''
 
     def __init__(self, parser: argparse.ArgumentParser) -> None:
+        # TODO refactor to construct ArgumentParser in constructor
         self.parser = parser
         self._validators: list[ValidatorType] = []
         self._post_processors: list[ProcessorType] = []
 
-    def add_argument(self, param: SubcommandArgument) -> None:
+    def add_parameter(self, param: Parameter) -> None:
+        '''Add parameter to parser'''
         add_params_to_parserlike(param, self.parser)
 
     def add_mutually_exclusive_group(
-            self, param_group: MutuallyExclusiveSubArgGroup) -> None:
-        '''Add group of mutually exclusive arguments to parser'''
+            self, param_group: MutuallyExclusiveGroup) -> None:
+        '''Add group of mutually exclusive parameters to parser'''
         group = self.parser.add_mutually_exclusive_group(
                 required = param_group.required)
         add_params_to_parserlike(param_group.arguments, group)
 
-    def add_group(self, param_group: SubcommandArgumentGroup) -> None:
-        '''Add grouped arguments to parser'''
+    def add_group(self, param_group: ParameterGroup) -> None:
+        '''Add grouped parameters to parser'''
         # for groups with no title, add directly to command root parser
         if param_group.title is None:
             group = self.parser
@@ -144,10 +156,10 @@ class Subparser:
                                                    param_group.description)
 
         for argument in param_group.arguments:
-            if isinstance(argument, SubcommandArgument):
+            if isinstance(argument, Parameter):
                 add_params_to_parserlike(argument, group)
 
-            elif isinstance(argument, MutuallyExclusiveSubArgGroup):
+            elif isinstance(argument, MutuallyExclusiveGroup):
                 mut_group = group.add_mutually_exclusive_group(
                         required = argument.required)
                 add_params_to_parserlike(argument.arguments, mut_group)
@@ -170,6 +182,7 @@ class Subparser:
 
     def parse_args(self) -> dict[str, Any]:
         '''Yield arguments from command line parsing'''
+        # TODO extend to accept args as a function parameter
         args = self.parser.parse_args()
         return args.__dict__
 
@@ -186,7 +199,9 @@ class Subparser:
 
         return True
 
-class CommandParser:
+Subparser = Parser # TODO remove alias
+
+class CommandLine:
     '''Class for parsing command line input
 
     Constructor Parameters:
@@ -199,18 +214,18 @@ class CommandParser:
             command line parser (defaults to False)
     '''
 
-    def __init__(self, subcommands: list[Subcommand], **options) -> None:
+    def __init__(self, subcommands: list[Command], **options) -> None:
         prog_name = options.get("prog_name", "program")
         description = options.get("description", "No description")
         parser = argparse.ArgumentParser(
                 prog = prog_name,
                 description = description)
 
-        self._subparser = Subparser(parser)
-        self._subcommands: dict[str, Subparser] = {}
+        self._parser = Parser(parser)
+        self._commands: dict[str, Parser] = {}
 
         if not options.get("no_print_flags", False):
-            self._subparser.add_post_processor(program_name_assigner(prog_name))
+            self._parser.add_post_processor(program_name_assigner(prog_name))
             self.add_print_flags()
 
         self._subparsers = parser.add_subparsers(
@@ -218,12 +233,12 @@ class CommandParser:
                 dest = "subcmd")
 
         for subcommand in subcommands:
-            self.add_subcommand(subcommand)
+            self.add_command(subcommand)
 
     def add_print_flags(self) -> None:
         """Set flags for printing and logging levels"""
         # TODO refactor to param group
-        parser = self._subparser.parser
+        parser = self._parser.parser
 
         parser.add_argument(
                 "-V",
@@ -245,50 +260,53 @@ class CommandParser:
                 help = "Print no output; use this if you batch commands"
                 )
 
-        self._subparser.add_post_processor(parse_logging_level)
+        self._parser.add_post_processor(parse_logging_level)
 
-    def add_subcommand(self, subcommand: Subcommand) -> None:
-        '''Set flags for subcommand'''
-        parser = self._subparsers.add_parser(
-                subcommand.name,
-                help = subcommand.helpstring)
+    def add_command(self, command: Command) -> None:
+        '''Set flags for command'''
+        subparser = self._subparsers.add_parser(
+                command.name,
+                help = command.helpstring)
 
-        subparser = Subparser(parser)
-        self._subcommands[subcommand.name] = subparser
+        parser = Parser(subparser)
+        self._commands[command.name] = parser
 
-        if subcommand.args is None:
+        if command.args is None:
             return
 
-        for args in subcommand.args:
-            if isinstance(args, SubcommandArgument):
-                subparser.add_argument(args)
+        for args in command.args:
+            if isinstance(args, Parameter):
+                parser.add_parameter(args)
 
-            elif isinstance(args, MutuallyExclusiveSubArgGroup):
-                subparser.add_mutually_exclusive_group(args)
+            elif isinstance(args, MutuallyExclusiveGroup):
+                parser.add_mutually_exclusive_group(args)
 
-            elif isinstance(args, SubcommandArgumentGroup):
-                subparser.add_group(args)
+            elif isinstance(args, ParameterGroup):
+                parser.add_group(args)
 
-        if subcommand.validators is not None:
-            for validator in subcommand.validators:
-                subparser.add_validator(validator)
+        if command.validators is not None:
+            for validator in command.validators:
+                parser.add_validator(validator)
 
-        if subcommand.post_processors is not None:
-            for post_processor in subcommand.post_processors:
-                subparser.add_post_processor(post_processor)
+        if command.post_processors is not None:
+            for post_processor in command.post_processors:
+                parser.add_post_processor(post_processor)
 
     def parse_args(self) -> dict[str, Any] | None:
         '''Parse CLI with post-processing and validators'''
-        args = self._subparser.parse_args()
-        self._subparser.run_post_processors(args)
+        parsed_args = self._parser.parse_args()
+        self._parser.run_post_processors(parsed_args)
 
-        if not self._subparser.run_validators(args):
+        if not self._parser.run_validators(parsed_args):
             return
 
-        subcmd_subparser = self._subcommands.get(args["subcmd"])
+        subcmd_subparser = self._commands.get(parsed_args["subcmd"])
         if subcmd_subparser is not None:
-            subcmd_subparser.run_post_processors(args)
-            if not subcmd_subparser.run_validators(args):
+            subcmd_subparser.run_post_processors(parsed_args)
+            if not subcmd_subparser.run_validators(parsed_args):
                 return
 
-        return args
+        return parsed_args
+
+CommandParser = CommandLine # TODO remove alias
+
