@@ -1,6 +1,6 @@
 from typing import Any
 
-from cli import Subcommand, SubcommandArgument, ARG_OPTIONAL
+from cli import Command, Parameter, ARG_OPTIONAL
 from filerange import FileRange, filerange
 from logger import error, info
 from srt import SRTDecoder, DecodeException
@@ -56,14 +56,14 @@ def option_range(value: str) -> tuple[bool, str]:
     '''Wrap range in a tuple to detect input conditions'''
     return (True, ":" + value)
 
-subcommand_trim = Subcommand(
+subcommand_trim = Command(
         name = "trim",
         function = trim,
         helpstring = "Trim to specified range of lines or timestamps",
-        args = [
+        parameters = [
             srt_file_output_params(),
             single_srt_file_input_params(),
-            SubcommandArgument(
+            Parameter(
                 name = "range",
                 helpstring = "A range of lines or timestamps",
                 type = ARG_OPTIONAL,

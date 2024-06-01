@@ -3,7 +3,7 @@ from typing import Any
 from logger import error, info
 import stime
 from srt import SRTDecoder, DecodeException
-from cli import Subcommand, SubcommandArgument, ARG_ENABLE
+from cli import Command, Parameter, ARG_ENABLE
 from subcommand.common import filerange_filter_function, save_subtitle_file,\
         single_srt_file_input_params, srt_file_output_params
 
@@ -57,24 +57,24 @@ def delay(args: dict[str, Any]) -> None:
 
     save_subtitle_file(srtfile, args)
 
-subcommand_delay = Subcommand(
+subcommand_delay = Command(
         name = "delay",
         function = delay,
         helpstring = "Delay a range of subtitles by a specified amount",
-        args = [
+        parameters = [
             srt_file_output_params(),
-            SubcommandArgument(
+            Parameter(
                 name = "-u",
                 helpstring = "Specify unit of delay (default: millisecond)",
                 long_name = "--unit",
                 choices = ("millisecond", "second", "minute", "ms", "s")),
-            SubcommandArgument(
+            Parameter(
                 name = "-x",
                 helpstring = "Encode only the specified range",
                 long_name = "--exclusive",
                 type = ARG_ENABLE),
             single_srt_file_input_params(),
-            SubcommandArgument(
+            Parameter(
                 name = "delay",
                 helpstring = "Amount of units (see -u) to delay by",
                 display_name = "delay_by",

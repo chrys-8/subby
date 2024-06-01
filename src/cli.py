@@ -77,27 +77,21 @@ class Parameter:
 
         return tuple(names), options
 
-SubcommandArgument = Parameter # TODO remove alias
-
 @dataclass
 class MutuallyExclusiveGroup:
     '''Represents a group of subcommand arguments that are mutually
     exclusive'''
-    arguments: list[Parameter] # TODO rename
+    parameters: list[Parameter]
     required: bool = False
-
-MutuallyExclusiveSubArgGroup = MutuallyExclusiveGroup # TODO remove alias
 
 @dataclass
 class ParameterGroup:
     '''Schema for representing grouped subcommand arguments'''
-    arguments: list[Parameter | MutuallyExclusiveGroup] # TODO rename
+    parameters: list[Parameter | MutuallyExclusiveGroup]
     title: str | None = None
     description: str | None = None
     deferred_validators: list[ValidatorType] | None = None
     deferred_post_processers: list[ProcessorType] | None = None
-
-SubcommandArgumentGroup = ParameterGroup # TODO remove alias
 
 @dataclass
 class Command:
@@ -105,12 +99,10 @@ class Command:
     name: str
     helpstring: str
     function: Callable[[dict[str, Any]], None]
-    args: list[Parameter | MutuallyExclusiveGroup |
-               ParameterGroup ] | None = None # TODO rename
+    parameters: list[Parameter | MutuallyExclusiveGroup |
+                     ParameterGroup ] | None = None
     validators: list[ValidatorType] | None = None
     post_processors: list[ProcessorType] | None = None
-
-Subcommand = Command # TODO remove alias
 
 ParserLike = argparse.ArgumentParser | argparse._ArgumentGroup | \
         argparse._MutuallyExclusiveGroup
@@ -144,7 +136,7 @@ class Parser:
         '''Add group of mutually exclusive parameters to parser'''
         group = self.parser.add_mutually_exclusive_group(
                 required = param_group.required)
-        add_params_to_parserlike(param_group.arguments, group)
+        add_params_to_parserlike(param_group.parameters, group)
 
     def add_group(self, param_group: ParameterGroup) -> None:
         '''Add grouped parameters to parser'''
@@ -155,14 +147,14 @@ class Parser:
             group = self.parser.add_argument_group(param_group.title,
                                                    param_group.description)
 
-        for argument in param_group.arguments:
+        for argument in param_group.parameters:
             if isinstance(argument, Parameter):
                 add_params_to_parserlike(argument, group)
 
             elif isinstance(argument, MutuallyExclusiveGroup):
                 mut_group = group.add_mutually_exclusive_group(
                         required = argument.required)
-                add_params_to_parserlike(argument.arguments, mut_group)
+                add_params_to_parserlike(argument.parameters, mut_group)
 
         if param_group.deferred_validators is not None:
             for validator in param_group.deferred_validators:
@@ -198,8 +190,6 @@ class Parser:
                 return False
 
         return True
-
-Subparser = Parser # TODO remove alias
 
 class CommandLine:
     '''Class for parsing command line input
@@ -271,10 +261,10 @@ class CommandLine:
         parser = Parser(subparser)
         self._commands[command.name] = parser
 
-        if command.args is None:
+        if command.parameters is None:
             return
 
-        for args in command.args:
+        for args in command.parameters:
             if isinstance(args, Parameter):
                 parser.add_parameter(args)
 
@@ -307,6 +297,4 @@ class CommandLine:
                 return
 
         return parsed_args
-
-CommandParser = CommandLine # TODO remove alias
 

@@ -2,7 +2,7 @@ from typing import Any
 
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
-from cli import Subcommand, SubcommandArgument, ARG_ENABLE
+from cli import Command, Parameter, ARG_ENABLE
 from logger import debug, warn, error, info, verbose
 from subcommand.common import multiple_srt_file_input_params
 
@@ -92,12 +92,12 @@ def display(args: dict[str, Any]) -> None:
         display_one(filerange, args)
         info("")
 
-subcommand_display = Subcommand(
+subcommand_display = Command(
         name = "display",
         function = display,
         helpstring = "Display information about subtitle file",
-        args = [
-            SubcommandArgument(
+        parameters = [
+            Parameter(
                 name = "--dbg1",
                 helpstring = "",
                 type = ARG_ENABLE

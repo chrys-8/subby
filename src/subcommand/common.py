@@ -1,6 +1,6 @@
 from typing import Callable, Any
 
-from cli import ARG_ENABLE, ARG_MULTIPLE, MutuallyExclusiveSubArgGroup, Subcommand, SubcommandArgument, SubcommandArgumentGroup
+from cli import ARG_ENABLE, ARG_MULTIPLE, MutuallyExclusiveGroup, Parameter, ParameterGroup
 from filerange import FileRange, filerange
 from logger import LogFormatter, error, info, warn
 from srt import SRTFile
@@ -110,14 +110,14 @@ def parse_many_promised_fileranges(args: dict[str, Any]) -> None:
 
     args["input"] = [parse_fn(value) for value in args["input"]]
 
-def single_srt_file_input_params() -> SubcommandArgumentGroup:
+def single_srt_file_input_params() -> ParameterGroup:
     '''Return options to implement SRT file input for a command'''
-    return SubcommandArgumentGroup(
-            arguments = [
-                SubcommandArgument(
+    return ParameterGroup(
+            parameters = [
+                Parameter(
                     name = "input",
                     helpstring = "The input file"),
-                SubcommandArgument(
+                Parameter(
                     name = "--use_ranges",
                     helpstring = "Enable parsing for ranges of lines or"\
                             " timestamps",
@@ -126,15 +126,15 @@ def single_srt_file_input_params() -> SubcommandArgumentGroup:
             deferred_validators = [validate_input_filetype],
             deferred_post_processers = [parse_promised_filerange])
 
-def multiple_srt_file_input_params() -> SubcommandArgumentGroup:
+def multiple_srt_file_input_params() -> ParameterGroup:
     '''Return options to implement many SRT file input for a command'''
-    return SubcommandArgumentGroup(
-            arguments = [
-                SubcommandArgument(
+    return ParameterGroup(
+            parameters = [
+                Parameter(
                     name = "input",
                     helpstring = "Input files for command",
                     type = ARG_MULTIPLE),
-                SubcommandArgument(
+                Parameter(
                     name = "--use-ranges",
                     helpstring = "Enable parsing for ranges of lines or"\
                             " timestamps",
@@ -143,16 +143,16 @@ def multiple_srt_file_input_params() -> SubcommandArgumentGroup:
             deferred_validators = [validate_many_input_filetypes],
             deferred_post_processers = [parse_many_promised_fileranges])
 
-def srt_file_output_params() -> MutuallyExclusiveSubArgGroup:
+def srt_file_output_params() -> MutuallyExclusiveGroup:
     '''Return options to implement file output for a command'''
-    return MutuallyExclusiveSubArgGroup(
-            arguments = [
-                SubcommandArgument(
+    return MutuallyExclusiveGroup(
+            parameters = [
+                Parameter(
                     name = "-o",
                     helpstring = "The output file",
                     long_name = "--output",
                     display_name = "output_file"),
-                SubcommandArgument(
+                Parameter(
                     name = "-O",
                     helpstring = "Overwrite input file",
                     long_name = "--overwrite",
