@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
 from filerange import FileRange, filerange
-from logger import LEVEL_INFO, LEVEL_QUIET, LEVEL_VERBOSE, LogFormatter,\
-        LogFlags, error, warn, LEVEL_DEBUG
+from logger import LogFormatter, LogFlags, error, warn, parse_logging_level
 
 # TODO consider moving filetype-specific validators and logging post-processors
 
@@ -50,25 +49,16 @@ def parse_many_promised_fileranges(args: dict[str, Any]) -> None:
 
     args["input"] = [parse_fn(value) for value in args["input"]]
 
-def parse_logging_level(args: dict[str, Any]) -> None:
-    '''Determine logging level from flag presence'''
-    if args["quiet"]:
-        args["verbosity"] = LEVEL_QUIET
-        return
-
-    if args["debug"]:
-        args["verbosity"] = LEVEL_DEBUG
-        return
-
-    if args["verbose"]:
-        args["verbosity"] = LEVEL_VERBOSE
-        return
-
-    args["verbosity"] = LEVEL_INFO
-    return
-
 ValidatorType = Callable[[dict[str, Any]], bool]
 ProcessorType = Callable[[dict[str, Any]], None]
+
+def program_name_assigner(prog_name: str) -> ProcessorType:
+    '''Return a callable that assigns program name to argument dictionary'''
+    def assigner(args: dict[str, Any]) -> None:
+        args["prog"] = prog_name
+        return
+
+    return assigner
 
 ARG_VALUE    = "value"
 ARG_ENABLE   = "enable"
@@ -172,24 +162,30 @@ class Subparser:
 
         return True
 
-# TODO move
-PROG_NAME = "subby"
-
 class CommandParser:
     '''Class for parsing command line input
 
     Constructor Parameters:
+        `prog_name` str: the name of the application for help strings and
+            logging
+
+        `description` str: a brief description of what the program does
+
         `no_print_flags` bool: if True, print flags will not be added to the
             command line parser (defaults to False)
     '''
 
     def __init__(self, subcommands: list[Subcommand], **options) -> None:
+        prog_name = options.get("prog_name", "program")
+        description = options.get("description", "No description")
         parser = argparse.ArgumentParser(
-                prog = PROG_NAME,
-                description = "Subtitle Editor")
+                prog = prog_name,
+                description = description)
 
         self._subparser = Subparser(parser)
         self._subcommands: dict[str, Subparser] = {}
+
+        self._subparser.add_post_processor(program_name_assigner(prog_name))
 
         if not options.get("no_print_flags", False):
             self.add_print_flags()
@@ -326,11 +322,6 @@ class CommandParser:
         args = self._subparser.parse_args()
         self._subparser.run_post_processors(args)
 
-        # TODO change to post-processor
-        log_flags = LogFlags(name = PROG_NAME, verbosity = args["verbosity"])
-        args["log_formatter"] = LogFormatter(log_flags)
-        args["log_formatter"].set_as_global_logger()
-
         if not self._subparser.run_validators(args):
             return
 
@@ -341,4 +332,3 @@ class CommandParser:
                 return
 
         return args
-

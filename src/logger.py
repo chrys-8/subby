@@ -1,5 +1,5 @@
 from dataclasses import astuple, dataclass
-from typing import Callable
+from typing import Callable, Any
 
 import term
 
@@ -215,3 +215,27 @@ class LogFormatter:
             result.error = self._create_log_function(**error_dict)
 
         return result
+
+# TODO incorporate into LEVELS dict
+def parse_logging_level(args: dict[str, Any]) -> None:
+    '''Determine logging level from flag presence'''
+    if args["quiet"]:
+        verbosity = LEVEL_QUIET
+
+    elif args["debug"]:
+        verbosity = LEVEL_DEBUG
+
+    elif args["verbose"]:
+        verbosity = LEVEL_VERBOSE
+
+    else:
+        verbosity = LEVEL_INFO
+
+    args["verbosity"] = verbosity
+    prog_name = args["prog"]
+    log_flags = LogFlags(name = prog_name, verbosity = verbosity)
+    log_formatter = LogFormatter(log_flags)
+    log_formatter.set_as_global_logger()
+
+    args["log_formatter"] = log_formatter
+    return

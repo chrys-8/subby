@@ -15,9 +15,15 @@ default_subcommands_configuration = [
         subcommand_trim
         ]
 
+program_options = {
+        "prog_name": "subby",
+        "description": "Subtitle Editor"
+        }
+
 def main() -> None:
     config = default_subcommands_configuration
-    args: dict[str, Any] | None = CommandParser(config).parse_args()
+    parser: CommandParser = CommandParser(config, **program_options)
+    args: dict[str, Any] | None = parser.parse_args()
 
     if args is None:
         # assume error was provided by validators in CommandParser
