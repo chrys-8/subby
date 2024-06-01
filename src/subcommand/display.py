@@ -4,7 +4,7 @@ from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
 from cli import SUBCMD_INPUT_MANY, Subcommand, SubcommandArgument, \
         ARG_ENABLE
-from logger import debug, warn, error, info
+from logger import debug, warn, error, info, verbose
 
 def dbg1_decode_utf8_only(filerange: FileRange) -> tuple[SRTDecoder, SRTFile]:
     """Debug UTF8 decoding"""
@@ -32,9 +32,6 @@ def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
     if filerange.linerange is not None or filerange.timerange is not None:
         warn(f"Ignoring provided range for {filerange.filename}...")
 
-    # TODO change to verbose
-    useLongInfo: bool = args["long"]
-
     try:
         if args["dbg1"]:
             decoder, srtfile = dbg1_decode_utf8_only(filerange)
@@ -61,11 +58,10 @@ def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
         info(f"\t{cases} cases of consecutive blank lines")
         hasIssues = True
 
-        if useLongInfo:
-            line_numbers = (str(index)
-                            for index in decoder.stats.consecutive_blank_lines)
+        line_numbers = (str(index)
+                        for index in decoder.stats.consecutive_blank_lines)
 
-            info(f"\ton line numbers: {', '.join(line_numbers)}")
+        verbose(f"\ton line numbers: {', '.join(line_numbers)}")
 
     # missing terminating blank line
     if decoder.stats.missing_end_blank_line:
@@ -79,17 +75,12 @@ def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
         warn("\tthis might suggest missing lines")
         hasIssues = True
 
-        if useLongInfo:
-            info("Reported line number\tActual line number")
-            for reported, actual in mismatches:
-                info(f"{reported}\t{actual}")
+        verbose("Reported line number\tActual line number")
+        for reported, actual in mismatches:
+            verbose(f"{reported}\t{actual}")
 
     if not hasIssues:
         info("\tno issues")
-
-    if args["missing"]:
-        warn("Utility for determining missing line numbers not yet" \
-                " implemented")
 
 def display(args: dict[str, Any]) -> None:
     '''Implement display subcommand for multiple files'''
@@ -106,14 +97,6 @@ subcommand_display = Subcommand(
         function = display,
         helpstring = "Display information about subtitle file",
         args = [
-            SubcommandArgument(
-                name = "--long",
-                helpstring = "Display detailed information",
-                type = ARG_ENABLE),
-            SubcommandArgument(
-                name = "--missing",
-                helpstring = "Not implemented",
-                type = ARG_ENABLE),
             SubcommandArgument(
                 name = "--dbg1",
                 helpstring = "",
