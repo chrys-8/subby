@@ -185,9 +185,8 @@ class CommandParser:
         self._subparser = Subparser(parser)
         self._subcommands: dict[str, Subparser] = {}
 
-        self._subparser.add_post_processor(program_name_assigner(prog_name))
-
         if not options.get("no_print_flags", False):
+            self._subparser.add_post_processor(program_name_assigner(prog_name))
             self.add_print_flags()
 
         self._subparsers = parser.add_subparsers(
