@@ -1,4 +1,6 @@
+import codecs
 from typing import Callable, Any
+from os.path import exists
 
 from cli import ARG_ENABLE, ARG_MULTIPLE, MutuallyExclusiveGroup, Parameter, ParameterGroup
 from filerange import FileRange, filerange
@@ -39,17 +41,31 @@ def filerange_filter_function(filerange: FileRange) \
 
 def save_subtitle_file(file: SRTFile, args: dict[str, Any]) -> None:
     '''Save subtitle file to specified filename'''
-    write_success: bool
     filename: str
     if args["overwrite"]:
         filename = file.filerange.filename
+    else:
+        filename = args["output"]
+
+    write_success: bool
+    if args["overwrite"]:
         info(f"Overwriting '{filename}' with {len(file.sublines)} lines")
         write_success = file.save_to_file()
 
+    elif exists(filename):
+        # TODO add confirm flag
+        # TODO change to use terminal prompting (UPCOMING)
+        info(f"File '{filename}' already exists")
+        if input("Are you sure you want to overwrite it? (Y/n) ") != "Y":
+            write_success = False
+
+        else:
+            info(f"Writing {len(file.sublines)} lines to existing file"\
+                    " '{filename}'")
+            write_success = file.write_to_file(filename)
+
     else:
-        # TODO  add guards for writing to a file that already exists
-        filename = args["output"]
-        info(f"Writing {len(file.sublines)} lines to '{filename}'")
+        info(f"Writing {len(file.sublines)} lines to new file '{filename}'")
         write_success = file.write_to_file(filename)
 
     use_term_colors: bool = False
