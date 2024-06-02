@@ -1,7 +1,11 @@
 import argparse
+<<<<<<< HEAD
 import codecs
 from typing import Any, Callable
 from os.path import exists
+=======
+from typing import Any, Callable
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 
 from cli import ARG_ENABLE, ARG_MULTIPLE, MutuallyExclusiveGroup, Parameter, ParameterGroup
 from filerange import FileRange, filerange
@@ -66,7 +70,12 @@ def save_subtitle_file(file: SRTFile, args: dict[str, Any]) -> None:
             write_success = file.write_to_file(filename)
 
     else:
+<<<<<<< HEAD
         info(f"Writing {len(file.sublines)} lines to new file '{filename}'")
+=======
+        filename = args["output"]
+        info(f"Writing {len(file.sublines)} lines to '{filename}'")
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
         write_success = file.write_to_file(filename)
 
     use_term_colors: bool = False

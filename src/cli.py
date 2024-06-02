@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 import argparse
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Callable, Sequence
+=======
+from dataclasses import dataclass
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 
 def is_float(value: str) -> bool:
     '''Return True if value is convertable to a float'''

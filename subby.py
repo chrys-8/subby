@@ -22,8 +22,12 @@ program_options = {
 
 def main() -> None:
     config = default_subcommands_configuration
+<<<<<<< HEAD
     parser: CommandLine = CommandLine(config, **program_options)
     args: dict[str, Any] | None = parser.parse_args()
+=======
+    args = CommandParser(config).parse_args_2()
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 
     if args is None:
         # assume error was provided by validators in CommandLine

@@ -1,12 +1,21 @@
+<<<<<<< HEAD
+=======
+import argparse
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 from typing import Any
 
 from argparser import ARG_ENABLE, SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Flag, Subcommand
 from logger import error, info
 import stime
 from srt import SRTDecoder, DecodeException
+<<<<<<< HEAD
 from cli import Command, Parameter, ARG_ENABLE
 from subcommand.common import filerange_filter_function, save_subtitle_file,\
         single_srt_file_input_params, srt_file_output_params
+=======
+#from argparser import Subcommand, SUBCMD_OUTPUT, Flag, ARG_ENABLE, SUBCMD_INPUT_SINGLE
+from subcommand.common import filerange_filter_function, save_subtitle_file
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 
 def delay(args: dict[str, Any]) -> None:
     '''Implement delay for subtitle range'''

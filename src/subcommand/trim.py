@@ -1,6 +1,14 @@
+<<<<<<< HEAD
 from typing import Any
 
 from cli import Command, Parameter, ARG_OPTIONAL
+=======
+import argparse
+from typing import Any
+
+#from argparser import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Subcommand, SubcommandArgument, ARG_OPTIONAL
+from argparser import SUBCMD_INPUT_SINGLE, SUBCMD_OUTPUT, Flag, Subcommand
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 from filerange import FileRange, filerange
 from logger import error, info
 from srt import SRTDecoder, DecodeException
@@ -47,7 +55,11 @@ def parse_range(args: dict[str, Any]) -> None:
 def validate_no_range_conflict(args: dict[str, Any]) -> bool:
     '''Check whether conflicting flags have been set'''
     provided, _ = args["range"]
+<<<<<<< HEAD
     if provided and args["use_ranges"]: # TODO may not work
+=======
+    if provided and args["use-ranges"]:
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
         error("Cannot have conflicting ranges")
         return False
 

@@ -3,9 +3,13 @@ from typing import Any
 from argparser import ARG_ENABLE, SUBCMD_INPUT_MANY, Flag, Subcommand
 from filerange import FileRange
 from srt import SRTDecoder, DecodeException, SRTFile, check_index_mismatch
+<<<<<<< HEAD
 from cli import Command, Parameter, ARG_ENABLE
 from logger import debug, warn, error, info, verbose
 from subcommand.common import multiple_srt_file_input_params
+=======
+from logger import debug, warn, error, info
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 
 def dbg1_decode_utf8_only(filerange: FileRange) -> tuple[SRTDecoder, SRTFile]:
     """Debug UTF8 decoding"""
@@ -33,6 +37,12 @@ def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
     if filerange.linerange is not None or filerange.timerange is not None:
         warn(f"Ignoring provided range for {filerange.filename}...")
 
+<<<<<<< HEAD
+=======
+    # TODO change to verbose
+    useLongInfo: bool = args["long"]
+
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
     try:
         if args["dbg1"]:
             decoder, srtfile = dbg1_decode_utf8_only(filerange)
@@ -83,6 +93,13 @@ def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
     if not hasIssues:
         info("\tno issues")
 
+<<<<<<< HEAD
+=======
+    if args["missing"]:
+        warn("Utility for determining missing line numbers not yet" \
+                " implemented")
+
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
 def display(args: dict[str, Any]) -> None:
     '''Implement display subcommand for multiple files'''
     input_count = len(args["input"])
@@ -97,9 +114,23 @@ subcommand_display = Command(
         name = "display",
         function = display,
         helpstring = "Display information about subtitle file",
+<<<<<<< HEAD
         parameters = [
             Flag(
                 name = "--dbg1",
+=======
+        args = [
+            Flag(
+                name = "-long",
+                helpstring = "Display detailed information",
+                type = ARG_ENABLE),
+            Flag(
+                name = "-missing",
+                helpstring = "Not implemented",
+                type = ARG_ENABLE),
+            Flag(
+                name = "-dbg1",
+>>>>>>> 3c378df0b457217c2bc8c980ec3a0c163a416c48
                 helpstring = "",
                 type = ARG_ENABLE
                 ),
