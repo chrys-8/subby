@@ -61,7 +61,7 @@ def save_subtitle_file(file: SRTFile, args: dict[str, Any]) -> None:
 
         else:
             info(f"Writing {len(file.sublines)} lines to existing file"\
-                    " '{filename}'")
+                    f" '{filename}'")
             write_success = file.write_to_file(filename)
 
     else:
