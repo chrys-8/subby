@@ -12,6 +12,21 @@ class FileRange:
     timerange: TimeRange | None
     linerange: tuple[int, int] | None
 
+    def __str__(self) -> str:
+        '''Return string representation'''
+        filename_prefix: str
+        if self.filename == "":
+            filename_prefix = ""
+        else:
+            filename_prefix = f"{self.filename}:"
+
+        if self.timerange is not None:
+            return f"{filename_prefix}{self.timerange}"
+        elif self.linerange is not None:
+            return f"{filename_prefix}{self.linerange[0]}-{self.linerange[1]}"
+        else:
+            return f"{self.filename}"
+
 def to_linerange(start_: str, end_: str) -> tuple[int, int] | None:
     '''Attempts to convert input to line range'''
     strip_hash = lambda s: s[1:] if s.startswith('#') else s

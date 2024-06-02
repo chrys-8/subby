@@ -7,15 +7,12 @@ from srt import SRTDecoder, DecodeException
 from subcommand.common import save_subtitle_file, filerange_filter_function,\
         single_srt_file_input_params, srt_file_output_params
 
-# TODO fix line numbering of trimmed srt files
-
 def trim(args: dict[str, Any]) -> None:
     '''Implement trim subcommand for subtitle range'''
     range_provided, input_range = args["range"]
     input_: FileRange
     if range_provided:
-        # TODO nicer representation of range
-        info(f"Using provided range: {input_range!s}")
+        info(f"Using provided range: {input_range}")
         input_ = input_range
         input_.filename = args["input"].filename
 
@@ -33,6 +30,10 @@ def trim(args: dict[str, Any]) -> None:
     filter_fn = filerange_filter_function(srtfile.filerange)
     trimmed_sublines = filter(filter_fn, srtfile.sublines)
     srtfile.sublines = list(trimmed_sublines)
+
+    for index, subline in enumerate(srtfile.sublines):
+        subline.index = index + 1 # 1-indexed
+
     save_subtitle_file(srtfile, args)
 
 def parse_range(args: dict[str, Any]) -> None:
