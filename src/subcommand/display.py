@@ -37,8 +37,8 @@ def display_one(filerange: FileRange, args: dict[str, Any]) -> None:
             decoder, srtfile = dbg1_decode_utf8_only(filerange)
 
         else:
-            # TODO add encoding flags; needs reactoring
-            decoder = SRTDecoder(filerange)
+            encoding = args["encoding"]
+            decoder = SRTDecoder(filerange, encoding)
             srtfile = decoder.decode()
 
     except DecodeException:

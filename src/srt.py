@@ -2,7 +2,7 @@ from enum import Enum, auto
 from typing import Any, Callable
 from dataclasses import dataclass
 
-from logger import debug, error, verbose, warn
+from logger import debug, error, verbose, warn, info
 from subtitles import SubtitleLine
 from stime import TimeRange, Time
 from filerange import FileRange
@@ -134,6 +134,13 @@ class SRTDecoder:
                 error(f"{err!s}")
                 debug(f"Unicode Error: {err!r}")
                 raise DecodeException
+
+        except UnicodeError as err:
+            error(f"Decoding {self.filerange.filename} raised error")
+            verbose(f"Details: {err}")
+            verbose(f"Current encoding: {self.encoding}")
+            info("Perhaps change the encoding with the --encoding option")
+            raise DecodeException
 
         finally:
             file.close()

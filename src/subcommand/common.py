@@ -107,6 +107,17 @@ def validate_many_input_filetypes(args: dict[str, Any]) -> bool:
 
     return True
 
+def validate_encoding(args: dict[str, Any]) -> bool:
+    '''Validate encoding is a known value'''
+    encoding = args["encoding"]
+    try:
+        codecs.lookup(encoding)
+    except LookupError:
+        error(f"'{encoding}' is not a known encoding")
+        return False
+
+    return True
+
 def parse_promised_filerange(args: dict[str, Any]) -> None:
     '''Parse file input to FileRange depending on conditions'''
     if args["use_ranges"]:
@@ -137,9 +148,17 @@ def single_srt_file_input_params() -> ParameterGroup:
                     name = "--use_ranges",
                     helpstring = "Enable parsing for ranges of lines or"\
                             " timestamps",
-                    type = ARG_ENABLE)
+                    type = ARG_ENABLE),
+                Parameter(
+                    name = "--encoding",
+                    helpstring = "The encoding for the input file",
+                    display_name = "encoding",
+                    default = "utf-8")
                 ],
-            deferred_validators = [validate_input_filetype],
+            deferred_validators = [
+                validate_input_filetype,
+                validate_encoding
+                ],
             deferred_post_processers = [parse_promised_filerange])
 
 def multiple_srt_file_input_params() -> ParameterGroup:
@@ -154,9 +173,17 @@ def multiple_srt_file_input_params() -> ParameterGroup:
                     name = "--use-ranges",
                     helpstring = "Enable parsing for ranges of lines or"\
                             " timestamps",
-                    type = ARG_ENABLE)
+                    type = ARG_ENABLE),
+                Parameter(
+                    name = "--encoding",
+                    helpstring = "The encoding for the input files",
+                    display_name = "encoding",
+                    default = "utf-8")
                 ],
-            deferred_validators = [validate_many_input_filetypes],
+            deferred_validators = [
+                validate_many_input_filetypes,
+                validate_encoding
+                ],
             deferred_post_processers = [parse_many_promised_fileranges])
 
 def srt_file_output_params() -> MutuallyExclusiveGroup:
