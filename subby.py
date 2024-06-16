@@ -9,6 +9,9 @@ from subcommand.display import subcommand_display
 from subcommand.delay import subcommand_delay
 from subcommand.trim import subcommand_trim
 
+# interactive mode imports
+import interactive as imode
+
 default_subcommands_configuration = [
         subcommand_display,
         subcommand_delay,
@@ -30,7 +33,9 @@ def main() -> None:
         return
 
     if args["subcmd"] is None:
-        info("Interactive mode coming soon! For now, use -h for help.")
+        interactive_mode = imode.InteractiveMode(config, args)
+        interactive_mode.start()
+        return
 
     for subcommand in config:
         if args["subcmd"] == subcommand.name:

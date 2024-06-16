@@ -100,6 +100,11 @@ def error(text: str, end: str = '\n') -> None:
     if global_logger is not None:
         global_logger.error(text + end)
 
+def set_global_logger(logger: Logger) -> None:
+    '''Set custom logger as global logger'''
+    global global_logger
+    global_logger = logger
+
 class LogFormatter:
     '''Implement formatting for logging output'''
     def __init__(self, flags: LogFlags) -> None:
