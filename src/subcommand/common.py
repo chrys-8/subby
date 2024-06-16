@@ -53,10 +53,16 @@ def save_subtitle_file(file: SRTFile, args: dict[str, Any]) -> None:
         write_success = file.save_to_file()
 
     elif exists(filename):
-        # TODO add confirm flag
+        # TODO test confirm flag
         # TODO change to use terminal prompting (UPCOMING)
         info(f"File '{filename}' already exists")
-        if input("Are you sure you want to overwrite it? (Y/n) ") != "Y":
+        confirm: bool = True
+        if not args["confirm"]:
+            user_confirm = input(
+                    "Are you sure you want to overwrite it? (Y/n) ")
+            confirm = user_confirm == "Y"
+
+        if not confirm:
             write_success = False
 
         else:
@@ -186,20 +192,28 @@ def multiple_srt_file_input_params() -> ParameterGroup:
                 ],
             deferred_post_processers = [parse_many_promised_fileranges])
 
-def srt_file_output_params() -> MutuallyExclusiveGroup:
+def srt_file_output_params() -> ParameterGroup:
     '''Return options to implement file output for a command'''
-    return MutuallyExclusiveGroup(
+    return ParameterGroup(
             parameters = [
+                MutuallyExclusiveGroup(
+                    parameters = [
+                        Parameter(
+                            name = "-o",
+                            helpstring = "The output file",
+                            long_name = "--output",
+                            display_name = "output_file"),
+                        Parameter(
+                            name = "-O",
+                            helpstring = "Overwrite input file",
+                            long_name = "--overwrite",
+                            type = ARG_ENABLE)
+                        ],
+                    required = True),
                 Parameter(
-                    name = "-o",
-                    helpstring = "The output file",
-                    long_name = "--output",
-                    display_name = "output_file"),
-                Parameter(
-                    name = "-O",
-                    helpstring = "Overwrite input file",
-                    long_name = "--overwrite",
+                    name = "--confirm",
+                    helpstring = "Confirm writing to existing files",
                     type = ARG_ENABLE)
-                ],
-            required = True)
+                ]
+            )
 
