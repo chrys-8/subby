@@ -8,6 +8,7 @@ from logger import info
 from subcommand.display import subcommand_display
 from subcommand.delay import subcommand_delay
 from subcommand.trim import subcommand_trim
+from subcommand.extend import subcommand_extend
 
 # interactive mode imports
 import interactive as imode
@@ -15,7 +16,8 @@ import interactive as imode
 default_subcommands_configuration = [
         subcommand_display,
         subcommand_delay,
-        subcommand_trim
+        subcommand_trim,
+        subcommand_extend
         ]
 
 program_options = {
